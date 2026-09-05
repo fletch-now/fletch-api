@@ -1,0 +1,43 @@
+# Refetches the spec and llms.txt once a week. scripts/snapshot.mjs writes
+# nothing when the served bytes match spec/, so the pull request step finds a
+# clean tree and opens nothing; when they differ, the typecheck and offline
+# tests run here first, because a pull request opened with GITHUB_TOKEN does not
+# trigger ci.yml. A red run means the new spec broke the SDK.
+#
+# This job can write to the repository, so it takes no chances with third-party
+# code: actions are pinned to commits, the checkout leaves no token in
+# .git/config (create-pull-request pushes with its own `token`), and npm runs no
+# install scripts.
+name: snapshot drift
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  snapshot:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262 # v4.4.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
+        with:
+          node-version: 24
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npm run snapshot
+      - run: npm run generate
+      - run: npm run typecheck
+      - run: npm run test:offline
+      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+        with:
+          branch: snapshot/refresh
+          title: "Refresh spec snapshot"
+          commit-message: "Refresh spec snapshot and generated types"
+          body: "The live openapi.json or llms.txt changed. Review the diff under spec/ and packages/fletch-sdk/src/generated/."

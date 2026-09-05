@@ -1,0 +1,255 @@
+{
+  "description": "Test vectors for verifying X-Fletch-Signature. `header` is the header value, `body` the raw request body, `now` the unix seconds the verifier treats as the current time, `toleranceSeconds` the accepted age either side of now. The header scheme is t=<unix seconds>,v1=<hex HMAC-SHA256 over \"<t>.<body>\" keyed with the whsec_ secret>. Secrets here are for these vectors only.",
+  "vectors": [
+    {
+      "name": "delivery signed with the endpoint secret",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200030,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "well-formed header, right secret, body unchanged, 30 s old"
+    },
+    {
+      "name": "test ping",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=adf442016446de2803eaa4b6d51a0107001e01bc7b7571208c2fb68459e6cb7c",
+      "body": "{\"id\":\"ping_0\",\"kind\":\"ping\",\"payload\":{\"message\":\"Fletch test delivery. Your endpoint is reachable and this body is signed.\"},\"watcher\":null,\"queuedAt\":\"2026-09-04T18:00:00.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "a ping is signed like any delivery"
+    },
+    {
+      "name": "body with non-ASCII text signed as UTF-8 bytes",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c3c71630729cbc0b981aa2b2cf5aa016e913a7f11bcb989678c30e738045abb5",
+      "body": "{\"id\":\"dl_u\",\"kind\":\"authority\",\"payload\":{\"title\":\"Lookalike of META: “META Platforms” at 0xbfa1…0e17\"}}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "the digest is over the raw UTF-8 bytes"
+    },
+    {
+      "name": "timestamp exactly at the tolerance bound",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200300,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "age equal to the tolerance is accepted; only older is rejected"
+    },
+    {
+      "name": "timestamp slightly in the future",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789199980,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "clock skew within the tolerance is accepted in either direction"
+    },
+    {
+      "name": "header with an extra unknown field",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040,v2=deadbeef",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "unknown fields are ignored so a later scheme can be added"
+    },
+    {
+      "name": "header with spaces after the commas",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000, v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "fields are trimmed"
+    },
+    {
+      "name": "uppercase hex digest",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=C4906236BB19565BD612F85E9B7333F1CF6BD2E07694AC315857176AD64AE040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": true,
+      "reason": "hex is compared as bytes, so case does not matter"
+    },
+    {
+      "name": "wrong secret",
+      "secret": "whsec_YW5vdGhlci1zZWNyZXQtZm9yLW5lZ2F0aXZlLXZlY3RvcnM",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "signed with a different secret"
+    },
+    {
+      "name": "body changed by one byte",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1501\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "the digest covers every byte of the body"
+    },
+    {
+      "name": "body re-serialized with a space",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\": \"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "sign the raw bytes; re-encoding a parsed object changes them"
+    },
+    {
+      "name": "timestamp one second past the tolerance",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200301,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "a replay of an old delivery"
+    },
+    {
+      "name": "timestamp too far in the future",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789199699,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "beyond the tolerance in the other direction"
+    },
+    {
+      "name": "timestamp in the header does not match the signed one",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200001,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "the timestamp is inside the signed string"
+    },
+    {
+      "name": "missing v1",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "no signature to check"
+    },
+    {
+      "name": "missing t",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "no timestamp to bound"
+    },
+    {
+      "name": "empty header",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "nothing to parse"
+    },
+    {
+      "name": "non-numeric timestamp",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=soon,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "t must be unix seconds as digits"
+    },
+    {
+      "name": "digest is not hex",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae0zz",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "v1 must decode as bytes"
+    },
+    {
+      "name": "digest truncated",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e0",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "a 32-byte HMAC is 64 hex characters"
+    },
+    {
+      "name": "digest under a different scheme name",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v0=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "only v1 is defined"
+    },
+    {
+      "name": "empty digest",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200000,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "an empty v1 never matches"
+    },
+    {
+      "name": "strict tolerance",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=1789200000,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200031,
+      "toleranceSeconds": 30,
+      "valid": false,
+      "reason": "the receiver picks the tolerance; 31 s is too old at 30 s"
+    },
+    {
+      "name": "superscript digit in t",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=²,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200030,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "t must be ASCII digits; a Unicode digit that is not an integer is rejected, never an exception"
+    },
+    {
+      "name": "fullwidth digits in t",
+      "secret": "whsec_Zm9yLXRlc3Rpbmctb25seS1ub3QtYS1yZWFsLXNlY3JldA",
+      "header": "t=１７８９２０００００,v1=c4906236bb19565bd612f85e9b7333f1cf6bd2e07694ac315857176ad64ae040",
+      "body": "{\"id\":\"dl_9f0c2a5e-6b3d-4c1e-9a7f-1d2e3f4a5b6c\",\"kind\":\"large_transfer\",\"payload\":{\"kind\":\"large_transfer\",\"chainId\":4663,\"symbol\":\"AAPL\",\"amount\":\"1500\",\"txHash\":\"0xabababababababababababababababababababababababababababababababab\"},\"watcher\":{\"id\":\"wt_1\",\"name\":\"AAPL transfers over 1000\",\"kind\":\"large_transfer\"},\"queuedAt\":\"2026-09-04T17:59:58.000Z\",\"attempt\":1,\"sentAt\":\"2026-09-04T18:00:00.000Z\"}",
+      "now": 1789200030,
+      "toleranceSeconds": 300,
+      "valid": false,
+      "reason": "t must be ASCII digits even when the runtime could convert the fullwidth form"
+    }
+  ]
+}

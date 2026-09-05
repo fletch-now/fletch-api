@@ -1,0 +1,17 @@
+{
+  "name": "fletch-webhook-verify",
+  "version": "0.1.0",
+  "description": "Verify the X-Fletch-Signature header on a Fletch webhook delivery.",
+  "license": "MIT",
+  "type": "module",
+  "private": true,
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "typecheck": "tsc --noEmit --strict --module nodenext --moduleResolution nodenext --target es2022 --allowImportingTsExtensions --erasableSyntaxOnly --types node verify.ts verify.test.ts",
+    "test": "node --test verify.test.ts",
+    "test:offline": "node --test verify.test.ts"
+  },
+  "devDependencies": { "@types/node": "^24.0.0", "typescript": "^5.9.0" },
+  "repository": { "type": "git", "url": "https://github.com/fletch-now/fletch-api", "directory": "webhooks/typescript" },
+  "homepage": "https://fletch.now"
+}

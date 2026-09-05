@@ -1,0 +1,29 @@
+{
+  "name": "fletch-sdk",
+  "version": "0.1.0",
+  "description": "TypeScript client for the Fletch v1 API: Robinhood Chain Stock Token registry reads, the changelog cursor and ETag caching. Types are generated from the OpenAPI snapshot.",
+  "license": "MIT",
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": { "types": "./dist/index.d.ts", "import": "./dist/index.js" }
+  },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=22.18" },
+  "scripts": {
+    "generate": "openapi-typescript ../../spec/openapi.json -o src/generated/openapi.ts --empty-objects-unknown --alphabetize",
+    "build": "tsc -p tsconfig.json",
+    "prepack": "npm run build",
+    "typecheck": "tsc -p tsconfig.json --noEmit && tsc -p tsconfig.test.json",
+    "test": "node --test test/*.test.ts",
+    "test:offline": "node --test test/client.test.ts"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "openapi-typescript": "^7.13.0",
+    "typescript": "^5.9.0"
+  },
+  "repository": { "type": "git", "url": "https://github.com/fletch-now/fletch-api", "directory": "packages/fletch-sdk" },
+  "homepage": "https://fletch.now"
+}

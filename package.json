@@ -1,0 +1,19 @@
+{
+  "name": "fletch-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "OpenAPI spec, written reference, event vocabulary, webhook verification and a generated TypeScript client for the Fletch v1 API.",
+  "license": "MIT",
+  "type": "module",
+  "engines": { "node": ">=22.18" },
+  "workspaces": ["packages/fletch-sdk", "webhooks/typescript"],
+  "scripts": {
+    "snapshot": "node scripts/snapshot.mjs",
+    "generate": "npm run generate --workspace fletch-sdk",
+    "typecheck": "npm run typecheck --workspaces",
+    "test": "npm test --workspaces",
+    "test:offline": "npm run test:offline --workspaces --if-present"
+  },
+  "repository": { "type": "git", "url": "https://github.com/fletch-now/fletch-api" },
+  "homepage": "https://fletch.now"
+}
