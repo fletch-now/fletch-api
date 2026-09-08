@@ -2,7 +2,7 @@
 # nothing when the served bytes match spec/, so the pull request step finds a
 # clean tree and opens nothing; when they differ, the typecheck and offline
 # tests run here first, because a pull request opened with GITHUB_TOKEN does not
-# trigger ci.yml. A red run means the new spec broke the SDK.
+# trigger ci.yml. Validation failures remain red; failed PR creation retains an artifact.
 #
 # This job can write to the repository, so it takes no chances with third-party
 # code: actions are pinned to commits, the checkout leaves no token in
@@ -35,9 +35,28 @@ jobs:
       - run: npm run generate
       - run: npm run typecheck
       - run: npm run test:offline
-      - uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
+      - id: pr
+        continue-on-error: true
+        uses: peter-evans/create-pull-request@22a9089034f40e5a961c8808d113e2c98fb63676 # v7.0.11
         with:
           branch: snapshot/refresh
           title: "Refresh spec snapshot"
           commit-message: "Refresh spec snapshot and generated types"
           body: "The live openapi.json or llms.txt changed. Review the diff under spec/ and packages/fletch-sdk/src/generated/."
+
+      - name: Preserve refresh for manual review when PR creation is unavailable
+        if: steps.pr.outcome == 'failure'
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02 # v4.6.2
+        with:
+          name: reviewed-public-api-refresh
+          path: |
+            spec/
+            packages/fletch-sdk/src/generated/
+          retention-days: 14
+          if-no-files-found: error
+      - name: Explain manual publication requirement
+        if: steps.pr.outcome == 'failure'
+        run: |
+          echo "::warning::Snapshot and generated types passed checks, but no pull request was created. Download reviewed-public-api-refresh and submit it through an authorized account."
+          echo "### Manual review required" >> "$GITHUB_STEP_SUMMARY"
+          echo "The checked snapshot is available in the reviewed-public-api-refresh artifact. PR creation failed; inspect that step for the cause. An owner can enable Actions pull requests in repository settings or publish the prepared files manually. No pull request is claimed by this run." >> "$GITHUB_STEP_SUMMARY"

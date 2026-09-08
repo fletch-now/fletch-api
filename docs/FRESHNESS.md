@@ -88,26 +88,30 @@ for the chain.
 
 ### Cadences
 
-What each job reads, and how often, as published in `cadenceSeconds`:
+Nominal cadences observed on 8 September 2026. Always use the response's current `cadenceSeconds`; jobs schedule their next run after completion, so a one-minute cadence plus 45 seconds of work is roughly 105 seconds between starts.
 
 | Job | Every | Reads |
 |---|---|---|
-| `control-plane` | 10 s | the AccessControlsRegistry's events: pauses, blocklist, roles, upgrades |
+| `control-plane` | 20 s | the AccessControlsRegistry's events: pauses, blocklist, roles, upgrades |
 | `authority-match` | 10 s | new authority events, fanned out to watchers |
-| `chain-health` | 30 s | head block, block time, base fee, batches, status page |
+| `chain-health` | 1 min | head block, block time, base fee, batches, status page |
 | `feeds` | 1 min | every Chainlink feed's latest round and staleness |
-| `supply-events` | 1 min | mints and burns |
+| `supply-events` | 2 min | mints and burns |
 | `transfer-ledger` | 1 min | every transfer, into per-holder balances |
 | `dex-swaps` | 1 min | swaps on the pools it knows |
-| `bridge-flows` | 1 min | deposits and withdrawals on the token bridge |
+| `bridge-flows` | 2 min | deposits and withdrawals on the token bridge |
 | `multiplier-events` | 5 min | multiplier changes and schedules |
 | `token-state` | 5 min | each token's multiplier, pauses and supply, from its contract |
 | `api-prices` | 5 min | Robinhood's own bid, ask and halt flag |
-| `dex-state` | 5 min | each pool's price, depth and liquidity |
+| `dex-tokens` | 1 min | bounded due metadata, preserving per-token read times |
+| `dex-prices` | 5 min | sampled pool price history |
+| `dex-tiers` | 1 h | pool activity tiers |
+| `new-pool-match` | 1 min | new-pool watcher matching |
+| `dex-state` | 10 min | each pool's price, depth and liquidity |
 | `dex-pools` | 10 min | new Uniswap v4 pools |
 | `dex-pools-v3` | 10 min | new Uniswap v3 pools |
-| `bridge-escrow` | 10 min | L1 escrow against L2 supply for bridged assets |
-| `feed-history` | 10 min | Chainlink round history |
+| `bridge-escrow` | 30 min | L1 escrow against L2 supply for bridged assets |
+| `feed-history` | 30 min | Chainlink round history |
 | `corporate-actions` | 1 h | corporate actions from the issuer's API |
 | `holder-labels` | 1 h | which holders are pools, contracts, the issuer or the bridge |
 | `issuer-pages` | 1 h | the issuer's watched pages |
@@ -136,11 +140,32 @@ The second case catches a job that runs on time but writes nothing.
 
 ## Using it
 
-- Gate on `verdict === "live"` when freshness matters, and read `summary` when it is
-  not.
+- Read job verdicts for process health, then check the actual row timestamp and
+  coverage for every number. `live` includes incomplete `filling` jobs.
 - To judge one number, find its figure and read `ageSeconds` against `cadenceSeconds`
   rather than trusting the overall word.
 - While a scanner is `filling`, figures that depend on it (holders, concentration,
-  swaps) describe a partial ledger; `hoursLeft` on its checkpoint says how long.
+  swaps) describe a partial ledger; `hoursLeft` is an estimate from observed scan rates, not a promised completion time.
 - The verdict is not a rate: a `degraded` registry still answers every read, with each
   figure as old as its own job's last success.
+
+## Pool state and metadata coverage
+
+A pool's `stateCurrent` requires an actual state observation within ten minutes,
+with no future timestamp. Stale, unread or future state suppresses current price,
+quote price, depth, raw liquidity/sqrt/tick and price-derived valuations/changes;
+`pricePublished` is false. `stateCheckedAt` retains the original read time. Current
+state alone does not guarantee a publishable price: quote support and depth also
+matter. A missing field or null means unknown/unpublished, never zero.
+
+`jobs[].metadataBacklog` is null until a successful batch reports its queue; otherwise
+it contains `total`, `due`, `visibleDue`, `neverRead`, `errors`, `oldestCheckedAt` and
+`measuredAt`. Its timestamp belongs to that measurement. A successful small batch
+does not refresh the remaining rows or establish full discovery. New records can
+make a backlog grow while work progresses. Trust and provenance remain separate
+from activity, listing prominence and price availability.
+
+On 8 September at 17:45:33 UTC, live status was 28 fresh jobs plus three filling
+jobs. That observation is historical, not a current health assertion. Historical
+transfer coverage and legacy two-UTC-day swap fields remain incomplete; never infer
+exact rolling 24-hour activity or historical USD from a current pool price.

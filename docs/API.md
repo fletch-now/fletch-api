@@ -311,3 +311,26 @@ Raw amounts (`totalSupplyRaw`, `valueRaw`, `*Wei`) are strings, exact as on chai
 Prices and multipliers are numbers. Timestamps are ISO 8601. Fields are added, never
 renamed.
 
+
+## Deployed registry additions, 8 September 2026
+
+`GET /api/v1/tokens/{address}` resolves one exact mainnet EVM address with trust and
+provenance. Missing or older-than-five-minute discovered metadata can trigger a
+bounded contract probe; unread fields remain null. A symbol match never substitutes
+for address identity. Listed, confirmed, community, lookalike and unknown outcomes
+carry different evidence; community is not an endorsement.
+
+`GET /api/v1/chains/4663/dex/pools` searches one page of listed and community pools.
+The default sort is `volume`, with depth and swap activity as fallback signals;
+`traction` remains an alias. Filters include `kind`, `tier`, `venue` and `q`; `limit`
+is at most 500 and `offset` pages explicitly. Do not load every pool into model
+context. Asset-pool and search responses carry `stateCurrent`: only observations
+within ten minutes qualify, and stale/unread/future states suppress current prices,
+depth, valuations and changes while retaining `stateCheckedAt`. Prices also need
+suitable quote/depth evidence. Preserve nulls. Consult [FRESHNESS.md](FRESHNESS.md)
+for metadata backlog and why on-time jobs do not establish fresh figures.
+
+The deployed legacy swap fields may describe the current UTC day and the day before
+it. They are not exact rolling 24-hour metrics. Do not infer historical USD volume
+from a current price. New exact event-ledger/discovery work in the private source
+is not part of this published acceptance.

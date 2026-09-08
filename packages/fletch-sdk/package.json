@@ -1,6 +1,6 @@
 {
   "name": "fletch-sdk",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "description": "TypeScript client for the Fletch v1 API: Robinhood Chain Stock Token registry reads, the changelog cursor and ETag caching. Types are generated from the OpenAPI snapshot.",
   "license": "MIT",
   "type": "module",

@@ -18,6 +18,12 @@ test("GET /status answers a verdict and one row per job", { skip: offline }, asy
   for (const job of status.jobs) {
     assert.ok(job.verdict in status.verdicts, `${job.job}: ${job.verdict}`);
     assert.ok(job.cadenceSeconds > 0);
+    if (job.metadataBacklog !== null) {
+      const backlog = job.metadataBacklog;
+      assert.ok(backlog.total >= backlog.due && backlog.due >= backlog.visibleDue);
+      assert.ok(backlog.neverRead >= 0);
+      assert.ok(Number.isFinite(Date.parse(backlog.measuredAt)));
+    }
   }
   assert.equal(typeof status.verdicts.live, "string");
 });
@@ -49,5 +55,19 @@ test("GET /events pages by cursor and revalidates by ETag", { skip: offline }, a
   const newer = after.events ?? [];
   for (let index = 1; index < newer.length; index += 1) {
     assert.ok(String(newer[index - 1]?.observedAt) <= String(newer[index]?.observedAt), "catch-up pages are oldest first");
+  }
+});
+
+
+test("pool search exposes state freshness and preserves unpublished values", { skip: offline }, async function run() {
+  const response = await client.get("/chains/{chainId}/dex/pools", { path: { chainId: MAINNET_CHAIN_ID }, query: { tier: "all", limit: 5 } });
+  assert.equal(response.body.sort, "volume");
+  for (const pool of response.body.pools ?? []) {
+    assert.equal(typeof pool.stateCurrent, "boolean");
+    if (!pool.stateCurrent) {
+      assert.equal(pool.pricePublished, false);
+      assert.equal(pool.priceUsd, null);
+      assert.equal(pool.depthUsd, null);
+    }
   }
 });

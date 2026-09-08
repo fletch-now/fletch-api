@@ -1,7 +1,5 @@
-// The body of GET /status, as docs/FRESHNESS.md describes it. The served spec
-// types this route as a bare object, so these names are kept by hand until the
-// spec carries a Freshness schema; the runtime checks in the live test are what
-// hold them to the real answer.
+// Status has partially specified inline schemas in the public OpenAPI document.
+// Keep the remaining typed fields aligned with the live contract and its tests.
 
 export type JobVerdict = "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
 export type FigureVerdict = JobVerdict | "unread";
@@ -17,6 +15,16 @@ export interface CheckpointProgress {
   hoursLeft: number | null;
 }
 
+export interface MetadataBacklog {
+  total: number;
+  due: number;
+  visibleDue: number;
+  neverRead: number;
+  errors: number;
+  oldestCheckedAt: string | null;
+  measuredAt: string;
+}
+
 export interface JobFreshness {
   job: string;
   cadenceSeconds: number;
@@ -28,6 +36,7 @@ export interface JobFreshness {
   error: string | null;
   running: boolean;
   checkpoints: CheckpointProgress[];
+  metadataBacklog: MetadataBacklog | null;
 }
 
 export interface FigureFreshness {

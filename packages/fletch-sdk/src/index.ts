@@ -78,14 +78,15 @@ export class FletchError extends Error {
   }
 
   static async from(response: Response, url: string): Promise<FletchError> {
-    let body: unknown = null;
-    try {
-      body = await response.json();
-    } catch {
-      body = null;
-    }
+    // Error bodies are untrusted and can echo request credentials or proxy details.
+    await response.body?.cancel().catch(function ignore() { return undefined; });
+    let message = "The API request failed. Check the route and try again.";
+    if (response.status === 401) message = "Check whether this route needs a valid API key.";
+    if (response.status === 403) message = "Check the API key's required scope and account access.";
+    if (response.status === 429) message = "Rate limit reached; wait before retrying.";
     const retryAfter = Number(response.headers.get("retry-after"));
-    return new FletchError(response.status, url, body, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null);
+    const publicUrl = new URL(url);
+    return new FletchError(response.status, publicUrl.origin + publicUrl.pathname, { error: message }, Number.isFinite(retryAfter) && retryAfter > 0 ? retryAfter : null);
   }
 }
 
@@ -222,21 +223,41 @@ export class FletchClient {
     return headers;
   }
 
+  private redact(text: string): string {
+    return this.apiKey ? text.split(this.apiKey).join("[redacted]") : text;
+  }
+
+  private async fetchRead(url: string, headers: Record<string, string>, signal?: AbortSignal): Promise<Response> {
+    const init: RequestInit = { headers, redirect: "error" };
+    if (signal) init.signal = signal;
+    try {
+      return await this.fetchImpl(url, init);
+    } catch {
+      if (signal?.aborted) throw new DOMException("The Fletch request was aborted.", "AbortError");
+      throw new Error("Could not read the Fletch API: network failure or refused redirect.");
+    }
+  }
+
   // One GET. A cached ETag is sent as If-None-Match; a 304 answers from the
   // cache with `fromCache: true`. Anything but 200 or 304 throws FletchError.
   async get<P extends GetPath>(path: P, options: RequestOptions<P> = {}): Promise<FletchResponse<Body<P>>> {
     const url = this.url(path, options);
     const cached = this.cache.get(url);
     const headers = this.headers(cached ? { "if-none-match": cached.etag } : {});
-    const init: RequestInit = options.signal ? { headers, signal: options.signal } : { headers };
-    const response = await this.fetchImpl(url, init);
+    const response = await this.fetchRead(url, headers, options.signal);
     if (response.status === 304 && cached) {
       return { body: cached.body as Body<P>, etag: cached.etag, status: 304, fromCache: true };
     }
     if (!response.ok) {
-      throw await FletchError.from(response, url);
+      throw await FletchError.from(response, this.redact(url));
     }
-    const body = (await response.json()) as Body<P>;
+    let body: Body<P>;
+    try {
+      body = JSON.parse(this.redact(await response.text())) as Body<P>;
+    } catch {
+      if (options.signal?.aborted) throw new DOMException("The Fletch request was aborted.", "AbortError");
+      throw new FletchError(response.status, this.redact(new URL(url).pathname), { error: "The API response was not readable JSON." }, null);
+    }
     const etag = response.headers.get("etag");
     if (etag) {
       this.cache.set(url, { etag, body });
@@ -334,10 +355,9 @@ export class FletchClient {
   async *streamEvents(chainId: number = MAINNET_CHAIN_ID, options: StreamOptions = {}): AsyncGenerator<StreamFrame, void, void> {
     const url = `${this.baseUrl}${buildPath("/chains/{chainId}/events/stream", { chainId })}${buildQuery(options.since ? { since: options.since } : undefined)}`;
     const headers = this.headers({ accept: "text/event-stream" });
-    const init: RequestInit = options.signal ? { headers, signal: options.signal } : { headers };
-    const response = await this.fetchImpl(url, init);
+    const response = await this.fetchRead(url, headers, options.signal);
     if (!response.ok || !response.body) {
-      throw await FletchError.from(response, url);
+      throw await FletchError.from(response, this.redact(url));
     }
     const reader = response.body.pipeThrough(new TextDecoderStream()).getReader();
     let buffered = "";
@@ -350,7 +370,7 @@ export class FletchClient {
         buffered += value;
         let boundary = buffered.indexOf("\n\n");
         while (boundary >= 0) {
-          const frame = parseFrame(buffered.slice(0, boundary));
+          const frame = parseFrame(this.redact(buffered.slice(0, boundary)));
           buffered = buffered.slice(boundary + 2);
           if (frame) {
             yield frame;
@@ -358,6 +378,9 @@ export class FletchClient {
           boundary = buffered.indexOf("\n\n");
         }
       }
+    } catch {
+      if (options.signal?.aborted) throw new DOMException("The Fletch stream was aborted.", "AbortError");
+      throw new Error("The Fletch event stream could not be read or parsed. Resume from the last processed cursor.");
     } finally {
       await reader.cancel().catch(function ignore() {
         return undefined;

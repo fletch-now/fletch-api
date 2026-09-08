@@ -48,9 +48,14 @@ Python and Go verifiers run with `python -m unittest` in `webhooks/python` and
 `go test ./...` in `webhooks/go`. CI runs all three.
 
 The spec is authored beside the server and served at `/api/v1/openapi.json`; this
-repository holds a dated copy and the material built on it. A weekly workflow opens a
-pull request when the live documents change.
+repository holds a dated copy and the material built on it. A weekly workflow validates changed documents and attempts a pull request. If
+repository policy blocks PR creation, it uploads the checked files as a 14-day
+artifact and explicitly records that manual publication is required.
 
 Fletch is not affiliated with Robinhood Markets, Inc.
 
 MIT, see `LICENSE`.
+
+Use [the freshness guide](docs/FRESHNESS.md) for `stateCurrent`, metadata backlog
+and field timestamps. A live job verdict alone does not establish fresh prices.
+[Full agent reference](https://fletch.now/llms-full.txt).

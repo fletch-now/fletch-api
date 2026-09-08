@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.2.0 — 2026-09-08 (prepared)
+
+- Reject redirects on JSON and SSE reads; retain safe status/retry guidance rather than upstream error bodies, and redact configured credentials from returned data.
+- Refresh the deployed public spec and generated SDK types; document token resolution, pool search, freshness and metadata backlog.
+- Preserve a checked artifact and an explicit manual-publication notice when repository policy prevents automated PR creation.
+- Retain legacy metric caveats and pending npm publication.
+
+
 ## 0.1.0 - 2026-09-05
 
 First public snapshot.

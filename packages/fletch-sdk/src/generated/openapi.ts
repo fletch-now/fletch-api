@@ -30,16 +30,32 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
+                            /** @description Recorded Slither result, including whether the tool ran. */
+                            analysis?: Record<string, unknown> | null;
                             artifacts?: Record<string, unknown>[];
                             build?: {
+                                /**
+                                 * @description Immutable queued billing choice. Null means the older record did not capture this choice.
+                                 * @enum {string|null}
+                                 */
+                                billingMode?: "platform" | "own_key" | null;
+                                capabilities?: {
+                                    images?: boolean;
+                                    text?: boolean;
+                                    tools?: boolean;
+                                } | null;
                                 /** Format: date-time */
                                 createdAt?: string;
+                                /** @enum {string|null} */
+                                custodyMode?: "platform" | "hosted" | "gateway" | null;
                                 error?: string | null;
                                 /** Format: date-time */
                                 finishedAt?: string | null;
                                 id?: string;
+                                model?: string | null;
                                 projectId?: string | null;
                                 prompt?: string;
+                                provider?: string;
                                 /** Format: date-time */
                                 startedAt?: string | null;
                                 status?: string;
@@ -53,12 +69,14 @@ export interface paths {
                                 verified?: boolean | null;
                             }[];
                             previewUrl?: string | null;
+                            /** @description Sandbox frontend template version recorded for this build. Null when unknown, including legacy builds. */
+                            templateVersion?: string | null;
                             /** @description forge test --json result, or null if not yet run. */
                             tests?: Record<string, unknown> | null;
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -91,6 +109,17 @@ export interface paths {
                         };
                     };
                 };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
             };
         };
         put?: never;
@@ -108,7 +137,10 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** List Robinhood Chain networks */
+        /**
+         * List Robinhood Chain networks
+         * @description Public. The public RPC URL, the explorer and whether Fletch has a provider key for the chain; a configured provider URL is never returned.
+         */
         get: {
             parameters: {
                 query?: never;
@@ -137,19 +169,8 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Credentials valid but missing the required scope */
-                403: {
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -191,7 +212,7 @@ export interface paths {
                     /** @description Symbol or name substring */
                     q?: string;
                     /**
-                     * @description Comma-separated exact tickers
+                     * @description Comma-separated exact tickers, up to 200; any past that are ignored
                      * @example TSLA,AAPL
                      */
                     symbols?: string;
@@ -292,19 +313,8 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Credentials valid but missing the required scope */
-                403: {
+                /** @description fields= was set on more than 50 assets; narrow with symbols= */
+                400: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -316,6 +326,17 @@ export interface paths {
                 };
                 /** @description Unknown chain */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -446,30 +467,19 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
-                401: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
-                /** @description Credentials valid but missing the required scope */
-                403: {
-                    headers: {
-                        [name: string]: unknown;
-                    };
-                    content: {
-                        "application/json": {
-                            error: string;
-                        };
-                    };
-                };
                 /** @description No such asset on this chain */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -500,6 +510,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description How many UTC days back; a malformed value reads as the default */
                     days?: number;
                 };
                 header?: never;
@@ -535,7 +546,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -567,6 +578,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description Rounds, newest first; a malformed value reads as the default, a larger one as the maximum */
                     limit?: number;
                     since?: string;
                 };
@@ -605,7 +617,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -709,7 +721,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -739,7 +751,7 @@ export interface paths {
         };
         /**
          * Holders largest first with share of supply and what each address is, holder count, the latest concentration reading with the shares that say where the supply sits, and whether the ledger has reached the chain head
-         * @description Public. `sits` is always one of `float`, `pools`, `issuer`, `bridge`, `contracts`, `unknown`, and names the concentration share this address's balance counts towards; `unknown` means the code probe has not checked this address yet. `label` and `labelKind` (`pool_manager`, `dex_pool`, `issuer`, `bridge_gateway`, `locker`, `contract`, `exchange`, `eoa`) are null for an address the registry has nothing to say about. `rawBalance` is in the token's base units; divide by 10^`decimals`. `sharePct` is that balance over `totalSupplyRaw`, read live, while the concentration shares are over the sum of every positive balance the ledger held at `concentration.asOfBlock`, so the two can differ slightly while the ledger trails the chain. `concentration` carries `floatPct`, `poolsPct`, `issuerPct`, `bridgePct`, `contractsPct` and `unknownPct`, which add to 100: float is the supply in ordinary wallets. `unknownPct` is the share held by addresses the code probe has not checked — it checks every holder above a ten-thousandth of a token's supply, so a tail of small holdings stays here permanently and `floatPct` is always a floor rather than a final answer. `issuerPct` is the share of every wallet labelled `issuer`, which is written only for Stock Tokens, whose mints are the issuer creating inventory; `issuerAddress` is this asset's largest mint recipient whatever the asset type. `concentration.day` is the UTC day of the reading, `takenAt` the ISO instant the job wrote it, and `asOfBlock` the ledger block it was computed at; the job runs every 24 h, so a share can be up to a day old. `concentration.holders` is the address count at that moment, while the top-level `holderCount` is read live and can differ. The shares come from the daily concentration job, which does not run while the transfer ledger is still reading history, so `concentration` is null until the ledger reaches head.
+         * @description Public. `sits` is always one of `float`, `pools`, `issuer`, `bridge`, `contracts`, `unknown`, and names the concentration share this address's balance counts towards; `unknown` means the code probe has not checked this address yet. `label` and `labelKind` (`pool_manager`, `dex_pool`, `issuer`, `bridge_gateway`, `locker`, `contract`, `exchange`, `eoa`) are null for an address the registry has nothing to say about. `rawBalance` is in the token's base units; divide by 10^`decimals`. `sharePct` is that balance over `totalSupplyRaw`, read live, while the concentration shares are over the sum of every positive balance the ledger held at `concentration.asOfBlock`, so the two can differ slightly while the ledger trails the chain. `concentration` carries `top1Pct`, `top10Pct` and `gini` over every positive balance, and the six shares `floatPct`, `poolsPct`, `issuerPct`, `bridgePct`, `contractsPct` and `unknownPct`, which add to 100: float is the supply in ordinary wallets. `unknownPct` is the share held by addresses the code probe has not checked — it checks every holder above a ten-thousandth of a token's supply, so a tail of small holdings stays here permanently and `floatPct` is always a floor rather than a final answer. `issuerPct` is the share of every wallet labelled `issuer`, which is written only for Stock Tokens, whose mints are the issuer creating inventory; `issuerAddress` is this asset's largest mint recipient whatever the asset type. `concentration.day` is the UTC day of the reading, `takenAt` the ISO instant the job wrote it, and `asOfBlock` the ledger block it was computed at; the job runs every 24 h, so a share can be up to a day old. `concentration.holders` is the address count at that moment, while the top-level `holderCount` is read live and can differ. The shares come from the daily concentration job, which does not run while the transfer ledger is still reading history, so `concentration` is null until the ledger reaches head.
          */
         get: {
             parameters: {
@@ -798,7 +810,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -882,7 +894,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -914,6 +926,7 @@ export interface paths {
         get: {
             parameters: {
                 query?: {
+                    /** @description Flows, newest first; a malformed value reads as the default, a larger one as the maximum */
                     limit?: number;
                     /** @example WBTC */
                     symbol?: string;
@@ -951,7 +964,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -981,12 +994,15 @@ export interface paths {
         };
         /**
          * The issuer's AccessControlsRegistry: paused, implementation, blocked-address count, and its latest events
-         * @description Public. One contract governs every Stock Token: this is the surface no other index publishes. `limit` caps events (default 50, max 200).
+         * @description Public. One contract governs every Stock Token: this is the surface no other index publishes. `limit` caps events (default 50, max 200), newest first. `offset` skips that many events, so `offset=200&limit=200` is the second page; an event that lands between two page reads repeats one row on the next page, so a consumer copying the log dedupes by `txHash` and `logIndex`. A page shorter than `limit` is the last one. `state` is the same on every page.
          */
         get: {
             parameters: {
                 query?: {
+                    /** @description Events per page (default 50) */
                     limit?: number;
+                    /** @description Events to skip before the page (default 0) */
+                    offset?: number;
                 };
                 header?: never;
                 path: {
@@ -1020,7 +1036,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1083,7 +1099,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1183,7 +1199,167 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chains/{chainId}/dex/pools": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Every pool on every DEX the registry reads, listed and community alike, one page at a time: the pair, the priced side, price, depth, the last day's swaps and volume, and FDV for an unlisted token
+         * @description Public. The market table behind a DexScreener-style page. `kind=listed` keeps pools with one side on Robinhood's list; `kind=community` keeps pools whose priced side is a token the list does not carry, described by `token` from its own contract and verified by nobody; `kind=lookalike` keeps the community pools whose token borrows a listed ticker or name at another address. `trust` is accepted as a synonym for `kind`. `sort` defaults to `volume`: fresh measured 24h volume, then measured quote-side depth and swap count. Missing values sort last; `traction` uses the same relevance ordering. `depth`, `swaps` and `newest` are explicit alternatives. `q` takes a listed ticker, a token symbol or name by prefix, a token contract address, a Uniswap v3 pool address, or a Uniswap v4 pool id. `total` counts every pool that matches before paging. A pool the state read has not reached carries nulls; a community pool whose token has not answered decimals() stays unpriced. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description Also accepted as `trust`. */
+                    kind?: "all" | "listed" | "community" | "lookalike";
+                    limit?: number;
+                    offset?: number;
+                    /**
+                     * @description Token or pool name, symbol, or a complete 0x address. Addresses are matched in full.
+                     * @example PIPE
+                     */
+                    q?: string;
+                    sort?: "traction" | "depth" | "volume" | "swaps" | "newest";
+                    /** @description Which tiers to list; the default is the pools worth watching. */
+                    tier?: "active" | "quiet" | "dormant" | "all";
+                    venue?: "uniswap_v4" | "uniswap_v3";
+                };
+                header?: never;
+                path: {
+                    /** @example 4663 */
+                    chainId: number;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A page of pools */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            discovery: {
+                                blocksBehind?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description When the chain head above was read.
+                                 */
+                                headAt?: string | null;
+                                headBlock?: string | null;
+                                readingHistory: boolean;
+                                /** @description Discovery has read this venue at least once; false means no pool from it is listed yet because nothing has looked. */
+                                scanned: boolean;
+                                scannedToBlock?: string | null;
+                                venue: string;
+                            }[];
+                            kind?: string;
+                            limit: number;
+                            note?: string;
+                            offset: number;
+                            pools: {
+                                /** @description The listed asset's ticker; null for a community pool. */
+                                asset?: string | null;
+                                change1hPct?: number | null;
+                                /** @description Dollar price against the newest sample at or before five minutes ago; null when no sample is old enough. */
+                                change5mPct?: number | null;
+                                change6hPct?: number | null;
+                                change24hPct?: number | null;
+                                createdBlock: string;
+                                currency0: string;
+                                currency1: string;
+                                depthUsd?: number | null;
+                                fee: number;
+                                feeDynamic?: boolean;
+                                feePct?: number | null;
+                                hooks?: string;
+                                /** @enum {string} */
+                                kind: "listed" | "community";
+                                /** Format: date-time */
+                                lastSwapAt?: string | null;
+                                liquidity?: string | null;
+                                poolAddress?: string | null;
+                                poolId: string;
+                                priceInQuote?: number | null;
+                                /** @description Current state has a finite positive price and clears the configured depth floor. */
+                                pricePublished: boolean;
+                                priceUsd?: number | null;
+                                quote?: string | null;
+                                sqrtPriceX96?: string | null;
+                                /** Format: date-time */
+                                stateCheckedAt?: string | null;
+                                /** @description The pool state was observed within ten minutes and its timestamp is not in the future. When false, depth, price, FDV and price changes are null; stateCheckedAt retains the actual observation time. */
+                                stateCurrent: boolean;
+                                swaps24h?: number | null;
+                                tick?: number | null;
+                                tickSpacing?: number;
+                                /**
+                                 * @description active: depth of $100 or a swap in the last week, read every ten minutes; quiet: a little depth, no recent swap, read daily; dormant: drained or empty for a month, read weekly.
+                                 * @enum {string}
+                                 */
+                                tier?: "active" | "quiet" | "dormant";
+                                /** @description The unlisted side of a community pool, as its own contract describes it. Nothing here is verified. */
+                                token?: {
+                                    address?: string;
+                                    decimals?: number | null;
+                                    /** @description Total supply times the pool's dollar price. */
+                                    fdvUsd?: number | null;
+                                    name?: string | null;
+                                    /** Format: date-time */
+                                    readAt?: string | null;
+                                    symbol?: string | null;
+                                    /** @description Base units; divide by 10^decimals. */
+                                    totalSupplyRaw?: string | null;
+                                } | null;
+                                /** @enum {string} */
+                                venue: "uniswap_v4" | "uniswap_v3";
+                                volumeUsd24h?: number | null;
+                            }[];
+                            q?: string | null;
+                            sort?: string;
+                            tier?: string;
+                            total: number;
+                            venue?: string | null;
+                        };
+                    };
+                };
+                /** @description Unknown chain */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1213,14 +1389,19 @@ export interface paths {
         };
         /**
          * The registry changelog: every pause, block, upgrade, multiplier change, stale feed, supply residual, listing, corporate action and chain status change the daemon recorded
-         * @description Public. Without `since`/`cursor`: newest first, with `kinds` (every kind the daemon can emit) and `nextCursor`. With `since` or `cursor` (an ISO instant, use the previous `nextCursor`): only newer rows, oldest first, so a consumer catches up without gaps. `kind` matches exactly or by prefix (`registry.`, `multiplier.`); `symbol` narrows to one token; `limit` up to 500.
+         * @description Public. Without `since`/`cursor`: newest first, with `kinds` (every kind the daemon can emit) and `nextCursor`. With `since` or `cursor` (an ISO instant, use the previous `nextCursor`): only newer rows, oldest first, so a consumer catches up without gaps; a `since` or `cursor` that does not parse is a 400, never a silent restart from now. `kind` matches exactly or by prefix (`registry.`, `multiplier.`) and `symbol` narrows to one token, on the newest-first read only: the cursor read returns every kind, and a consumer following a cursor filters on `kind` itself. `limit` up to 500. When the changelog is empty, `nextCursor` is the epoch, which passed back yields every event from the first.
          */
         get: {
             parameters: {
                 query?: {
+                    /**
+                     * @description An opaque position, `${observedAt}|${id}`, as returned in `nextCursor`. Pass it back verbatim; a bare ISO instant is also accepted.
+                     * @example 2026-09-05T11:50:43.476Z|ev_9f3256ce83b6dd98fedbe4ec
+                     */
                     cursor?: string;
                     /** @example multiplier. */
                     kind?: string;
+                    /** @description A malformed value reads as the default, a larger one as the maximum */
                     limit?: number;
                     since?: string;
                     /** @example TSLA */
@@ -1242,10 +1423,53 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            events?: Record<string, unknown>[];
+                            events: {
+                                /** @description The contract or account concerned; null for a chain-wide event */
+                                address: string | null;
+                                /** @description Block number as a decimal string; null for events not tied to a block */
+                                block: string | null;
+                                /** @description The numbers behind the title; fields depend on the kind */
+                                detail: {
+                                    [key: string]: unknown;
+                                } | null;
+                                /** @description `ev_` followed by 24 hex characters; the same change is never written twice */
+                                id: string;
+                                /**
+                                 * @description A dotted kind such as `registry.paused` or `multiplier.applied`; every kind the daemon can emit is in the response's `kinds`
+                                 * @example multiplier.applied
+                                 */
+                                kind: string;
+                                /**
+                                 * Format: date-time
+                                 * @description When the daemon recorded it; the cursor orders by this
+                                 */
+                                observedAt: string;
+                                /**
+                                 * Format: date-time
+                                 * @description When the change happened on chain or at the source
+                                 */
+                                occurredAt: string;
+                                /** @description The token concerned; null for a chain-wide event */
+                                symbol: string | null;
+                                /** @description The change as one changelog line */
+                                title: string;
+                                txHash: string | null;
+                            }[];
+                            /** @description Every kind the daemon can emit; present only on the newest-first read (no `since`/`cursor`) */
                             kinds?: string[];
-                            /** Format: date-time */
-                            nextCursor?: string;
+                            /** @description `${observedAt}|${id}` of the last row seen; pass it back as `cursor` to receive only what follows. The epoch when the changelog is empty. */
+                            nextCursor: string;
+                        };
+                    };
+                };
+                /** @description since or cursor is malformed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -1260,7 +1484,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1288,10 +1512,11 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** The same changelog as Server-Sent Events; each frame's id is its observedAt, so Last-Event-ID (or ?since=) resumes without gaps */
+        /** The same changelog as Server-Sent Events; each frame's id is the event's cursor (`${observedAt}|${id}`), so Last-Event-ID (or ?since=) resumes without gaps */
         get: {
             parameters: {
                 query?: {
+                    /** @description An ISO instant or a cursor `${observedAt}|${id}`; the Last-Event-ID header takes precedence. Without either the stream starts at now. */
                     since?: string;
                 };
                 header?: never;
@@ -1303,12 +1528,23 @@ export interface paths {
             };
             requestBody?: never;
             responses: {
-                /** @description text/event-stream; `event` is the kind, `data` the JSON event */
+                /** @description text/event-stream; `event` is the kind, `data` an AuthorityEvent as JSON, `id` the event's cursor. The first frame carries `retry` and an `id` with no event, so a reconnect always has a position. */
                 200: {
                     headers: {
                         [name: string]: unknown;
                     };
                     content?: never;
+                };
+                /** @description since or Last-Event-ID is malformed */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
                 };
                 /** @description Unknown chain */
                 404: {
@@ -1321,7 +1557,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests, or too many open streams from this address */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1384,7 +1620,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1450,7 +1686,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1478,11 +1714,17 @@ export interface paths {
             path?: never;
             cookie?: never;
         };
-        /** Every ERC-20 that borrows a listed ticker or exact name at another address, with holders and the beacon check that separates an impostor from an issuer-deployed token */
+        /**
+         * Every ERC-20 that borrows a listed ticker or exact name at another address, with holders and the beacon check that separates an impostor from an issuer-deployed token
+         * @description Public. Most held first. `limit` caps rows (default 300, max 1000); `offset` skips that many rows, so `offset=1000&limit=1000` is the second page, and a page shorter than `limit` is the last one. Holder counts are refreshed by the lookalike scan, so the order can shift between pages read across a scan: a consumer copying the whole table dedupes by `address`.
+         */
         get: {
             parameters: {
                 query?: {
+                    /** @description Rows per page (default 300) */
                     limit?: number;
+                    /** @description Rows to skip before the page (default 0) */
+                    offset?: number;
                     /** @example TSLA */
                     symbol?: string;
                 };
@@ -1517,7 +1759,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1547,7 +1789,7 @@ export interface paths {
         };
         /**
          * Whether the registry is live: the daemon's heartbeat, every job against its cadence, the scanners still reading history, and the age of every published figure
-         * @description Public. Always 200; the verdict is in the body ('live', 'degraded', 'stale', 'never'), so a stale registry is a fact to read rather than an error to retry. Each job carries its cadence, last successful run, age and verdict ('fresh', 'late', 'failing', 'filling', 'never'); each figure names the job that writes it and the newest timestamp behind it. Also served at /api/v1/status.
+         * @description Public. Always 200; the verdict is in the body ('live', 'degraded', 'stale', 'never'), so a stale registry is a fact to read rather than an error to retry. Each job carries its cadence, last successful run, age and verdict ('fresh', 'late', 'failing', 'filling', 'stalled', 'never'); metadataBacklog reports the measured due, visible, never-read and failed token counts after the last successful metadata batch; filling does not mean complete coverage; each figure names the job that writes it and the newest timestamp behind it. Also served at /api/v1/status.
          */
         get: {
             parameters: {
@@ -1571,9 +1813,27 @@ export interface paths {
                             daemon?: Record<string, unknown>;
                             figures?: Record<string, unknown>[];
                             head?: Record<string, unknown> | null;
-                            jobs?: Record<string, unknown>[];
+                            jobs?: {
+                                cadenceSeconds: number;
+                                job: string;
+                                /** @description Metadata queue measured after this job's last successful batch. Null means no batch has reported coverage yet; a fresh batch does not imply complete token coverage. */
+                                metadataBacklog: {
+                                    due: number;
+                                    errors: number;
+                                    /** Format: date-time */
+                                    measuredAt: string;
+                                    neverRead: number;
+                                    /** Format: date-time */
+                                    oldestCheckedAt: string | null;
+                                    total: number;
+                                    visibleDue: number;
+                                } | null;
+                                /** @enum {string} */
+                                verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
+                            }[];
                             summary?: string;
-                            verdict?: string;
+                            /** @enum {string} */
+                            verdict?: "live" | "degraded" | "stale" | "never";
                         };
                     };
                 };
@@ -1588,7 +1848,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1644,7 +1904,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1657,6 +1917,17 @@ export interface paths {
                 };
                 /** @description Credentials valid but missing the required scope */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1699,10 +1970,132 @@ export interface paths {
                         [name: string]: unknown;
                     };
                     content: {
-                        "application/json": Record<string, unknown>;
+                        "application/json": {
+                            daemon?: Record<string, unknown>;
+                            figures?: Record<string, unknown>[];
+                            head?: Record<string, unknown> | null;
+                            jobs?: {
+                                cadenceSeconds: number;
+                                job: string;
+                                /** @description Metadata queue measured after this job's last successful batch. Null means no batch has reported coverage yet; a fresh batch does not imply complete token coverage. */
+                                metadataBacklog: {
+                                    due: number;
+                                    errors: number;
+                                    /** Format: date-time */
+                                    measuredAt: string;
+                                    neverRead: number;
+                                    /** Format: date-time */
+                                    oldestCheckedAt: string | null;
+                                    total: number;
+                                    visibleDue: number;
+                                } | null;
+                                /** @enum {string} */
+                                verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
+                            }[];
+                            summary?: string;
+                            /** @enum {string} */
+                            verdict?: "live" | "degraded" | "stale" | "never";
+                        };
                     };
                 };
-                /** @description Too many anonymous requests */
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/tokens/{address}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * What a token at an address is: listed and confirmed, listed and unconfirmed, impersonating a listed asset, a community token nobody has vouched for, or unreadable
+         * @description Public. The check to run before an address is pasted anywhere. `trust` is `verified` (Robinhood lists this address and the contract answers with the listed symbol and decimals), `listed` (on the list, not yet confirmed against the chain), `lookalike` (not on the list, and its symbol or name folds to a verified asset's — `impersonates` names the real one and its address), `community` (found on chain, read from its own contract, vouched for by nobody) or `unknown` (nothing answered at this address). Symbols are compared with homoglyphs folded and invisible characters stripped, so a Cyrillic ТSLA is caught as a lookalike of TSLA. `source` says where the facts came from: `registry` is Robinhood's list, `discovered` is the token's own contract as the registry daemon read it, `none` is an address nobody has read. `market` is the deepest pool Fletch has priced from its own reserves, in dollars, and is null when no pool has been priced. A null is a figure not read, never a zero.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    /** @example 0x0000000000000000000000000000000000000000 */
+                    address: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description What this token is */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            address: string;
+                            chainId: number;
+                            decimals?: number | null;
+                            detail: string;
+                            explorerUrl: string;
+                            /** Format: date-time */
+                            firstSeenAt?: string | null;
+                            impersonates?: {
+                                address?: string;
+                                name?: string;
+                                registryUrl?: string;
+                                symbol?: string;
+                            } | null;
+                            label: string;
+                            market?: {
+                                depthUsd?: number | null;
+                                poolId?: string;
+                                priceUsd?: number | null;
+                                swaps24h?: number | null;
+                                venue?: string;
+                                volumeUsd24h?: number | null;
+                            } | null;
+                            name?: string | null;
+                            note?: string;
+                            /** Format: date-time */
+                            readAt?: string | null;
+                            registryUrl?: string | null;
+                            /** @enum {string} */
+                            source: "registry" | "discovered" | "none";
+                            symbol?: string | null;
+                            /** @enum {string} */
+                            trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+                        };
+                    };
+                };
+                /** @description Not an address */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
                 429: {
                     headers: {
                         [name: string]: unknown;
@@ -1761,8 +2154,15 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
+                                /** @description The most recent delivery of any status, or null before the first. */
+                                lastDelivery: {
+                                    amount: string | null;
+                                    /** Format: date-time */
+                                    sentAt: string | null;
+                                    txHash: string;
+                                } | null;
                                 lastError?: string | null;
                                 /** Format: date-time */
                                 lastTriggeredAt?: string | null;
@@ -1783,7 +2183,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -1796,6 +2196,17 @@ export interface paths {
                 };
                 /** @description Credentials valid but missing the required scope */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -1822,19 +2233,22 @@ export interface paths {
             requestBody: {
                 content: {
                     "application/json": {
-                        assetId: string;
+                        /** @description Required for large_transfer, wallet_activity and token_event; omitted for registry_event. */
+                        assetId?: string;
                         /**
                          * @default large_transfer
                          * @enum {string}
                          */
-                        kind?: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                        kind?: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                        /** @description new_pool only: alert only on a pool whose token borrows a listed ticker or name. Off by default. */
+                        lookalikesOnly?: boolean;
                         name?: string;
                         projectId?: string;
                         /**
-                         * @description Positive for large_transfer; wallet_activity accepts "0" to mean every transfer.
+                         * @description Required for large_transfer (positive) and wallet_activity ("0" means every transfer); ignored by registry_event, token_event and new_pool.
                          * @example 1000
                          */
-                        threshold: string;
+                        threshold?: string;
                         /**
                          * @description Required when kind is wallet_activity — a 0x-prefixed 40-character hex address.
                          * @example 0x1234567890123456789012345678901234567890
@@ -1867,8 +2281,15 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
+                                /** @description The most recent delivery of any status, or null before the first. */
+                                lastDelivery: {
+                                    amount: string | null;
+                                    /** Format: date-time */
+                                    sentAt: string | null;
+                                    txHash: string;
+                                } | null;
                                 lastError?: string | null;
                                 /** Format: date-time */
                                 lastTriggeredAt?: string | null;
@@ -1910,8 +2331,15 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
+                                /** @description The most recent delivery of any status, or null before the first. */
+                                lastDelivery: {
+                                    amount: string | null;
+                                    /** Format: date-time */
+                                    sentAt: string | null;
+                                    txHash: string;
+                                } | null;
                                 lastError?: string | null;
                                 /** Format: date-time */
                                 lastTriggeredAt?: string | null;
@@ -1943,7 +2371,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2035,8 +2463,15 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
+                                /** @description The most recent delivery of any status, or null before the first. */
+                                lastDelivery: {
+                                    amount: string | null;
+                                    /** Format: date-time */
+                                    sentAt: string | null;
+                                    txHash: string;
+                                } | null;
                                 lastError?: string | null;
                                 /** Format: date-time */
                                 lastTriggeredAt?: string | null;
@@ -2057,7 +2492,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2081,6 +2516,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2117,7 +2563,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2141,6 +2587,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2195,8 +2652,15 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
+                                /** @description The most recent delivery of any status, or null before the first. */
+                                lastDelivery: {
+                                    amount: string | null;
+                                    /** Format: date-time */
+                                    sentAt: string | null;
+                                    txHash: string;
+                                } | null;
                                 lastError?: string | null;
                                 /** Format: date-time */
                                 lastTriggeredAt?: string | null;
@@ -2217,7 +2681,18 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Neither enabled nor webhookId was sent, or the endpoint is not yours, is disabled, or was deleted */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2241,6 +2716,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2298,7 +2784,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2322,6 +2808,17 @@ export interface paths {
                 };
                 /** @description Watcher not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2392,7 +2889,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2405,6 +2902,17 @@ export interface paths {
                 };
                 /** @description Credentials valid but missing the required scope */
                 403: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2472,7 +2980,7 @@ export interface paths {
                                 /** @description The first characters of the signing secret; the secret itself is returned only once, at creation or rotation. */
                                 secretPrefix: string;
                                 url: string;
-                            };
+                            } & Record<string, unknown>;
                         };
                     };
                 };
@@ -2487,7 +2995,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2565,7 +3073,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2589,6 +3097,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2651,7 +3170,30 @@ export interface paths {
                                 /** @description The first characters of the signing secret; the secret itself is returned only once, at creation or rotation. */
                                 secretPrefix: string;
                                 url: string;
-                            };
+                            } | ({
+                                /** Format: date-time */
+                                createdAt: string;
+                                enabled: boolean;
+                                id: string;
+                                /**
+                                 * Format: date-time
+                                 * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
+                                 */
+                                lastDeliveredAt?: string | null;
+                                /** @description The most recent failure whenever it happened, cleared by the next success. Compare lastErrorAt with lastDeliveredAt before reading it as a fault now. */
+                                lastError?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description When lastError was written. Null on an endpoint whose last failure predates this field.
+                                 */
+                                lastErrorAt?: string | null;
+                                name: string;
+                                /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
+                                secret?: string;
+                                /** @description The first characters of the signing secret; the secret itself is returned only once, at creation or rotation. */
+                                secretPrefix: string;
+                                url: string;
+                            } & Record<string, unknown>);
                         };
                     };
                 };
@@ -2666,7 +3208,7 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2690,6 +3232,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description The key's hourly budget is spent; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2740,7 +3293,18 @@ export interface paths {
                         };
                     };
                 };
-                /** @description Missing or invalid credentials */
+                /** @description The endpoint is disabled; enable it first */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Missing or invalid credentials; carries WWW-Authenticate */
                 401: {
                     headers: {
                         [name: string]: unknown;
@@ -2764,6 +3328,17 @@ export interface paths {
                 };
                 /** @description Not found */
                 404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many test deliveries; Retry-After says when the window ends */
+                429: {
                     headers: {
                         [name: string]: unknown;
                     };
@@ -2882,6 +3457,39 @@ export interface components {
             /** Format: date-time */
             verifiedAt?: string | null;
         };
+        /** @description One entry in the registry changelog. `id` is stable across re-runs; the cursor for the row is `${observedAt}|${id}`. */
+        AuthorityEvent: {
+            /** @description The contract or account concerned; null for a chain-wide event */
+            address: string | null;
+            /** @description Block number as a decimal string; null for events not tied to a block */
+            block: string | null;
+            /** @description The numbers behind the title; fields depend on the kind */
+            detail: {
+                [key: string]: unknown;
+            } | null;
+            /** @description `ev_` followed by 24 hex characters; the same change is never written twice */
+            id: string;
+            /**
+             * @description A dotted kind such as `registry.paused` or `multiplier.applied`; every kind the daemon can emit is in the response's `kinds`
+             * @example multiplier.applied
+             */
+            kind: string;
+            /**
+             * Format: date-time
+             * @description When the daemon recorded it; the cursor orders by this
+             */
+            observedAt: string;
+            /**
+             * Format: date-time
+             * @description When the change happened on chain or at the source
+             */
+            occurredAt: string;
+            /** @description The token concerned; null for a chain-wide event */
+            symbol: string | null;
+            /** @description The change as one changelog line */
+            title: string;
+            txHash: string | null;
+        };
         Chain: {
             chainId: number;
             explorerUrl: string;
@@ -2929,8 +3537,15 @@ export interface components {
             enabled: boolean;
             id: string;
             /** @enum {string} */
-            kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event";
+            kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
             lastCheckedBlock?: string | null;
+            /** @description The most recent delivery of any status, or null before the first. */
+            lastDelivery: {
+                amount: string | null;
+                /** Format: date-time */
+                sentAt: string | null;
+                txHash: string;
+            } | null;
             lastError?: string | null;
             /** Format: date-time */
             lastTriggeredAt?: string | null;
@@ -2972,6 +3587,30 @@ export interface components {
             secretPrefix: string;
             url: string;
         };
+        WebhookCreated: {
+            /** Format: date-time */
+            createdAt: string;
+            enabled: boolean;
+            id: string;
+            /**
+             * Format: date-time
+             * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
+             */
+            lastDeliveredAt?: string | null;
+            /** @description The most recent failure whenever it happened, cleared by the next success. Compare lastErrorAt with lastDeliveredAt before reading it as a fault now. */
+            lastError?: string | null;
+            /**
+             * Format: date-time
+             * @description When lastError was written. Null on an endpoint whose last failure predates this field.
+             */
+            lastErrorAt?: string | null;
+            name: string;
+            /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
+            secret?: string;
+            /** @description The first characters of the signing secret; the secret itself is returned only once, at creation or rotation. */
+            secretPrefix: string;
+            url: string;
+        } & Record<string, unknown>;
         WebhookDelivery: {
             /** @description 1 on the first try. */
             attempt: number;

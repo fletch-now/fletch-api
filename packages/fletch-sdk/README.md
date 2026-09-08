@@ -71,3 +71,13 @@ unchanged. `npm run generate` rewrites `src/generated/openapi.ts` from the snaps
 declarations resolve without the source tree.
 
 Fletch is not affiliated with Robinhood Markets, Inc.
+
+## Credential and error handling
+
+Registry reads need no key. If configured, an API key is attached to this client's
+API reads over HTTPS; use only a trusted base URL. JSON and SSE reads reject all
+redirects, including same-origin redirects. Returned JSON and event data redact an
+exact echo of the configured key. HTTP errors retain their status, numeric
+Retry-After and safe guidance; `FletchError.body` contains that guidance, never the
+upstream response body. Network and malformed-response errors omit upstream text.
+Caller cancellation keeps the `AbortError` name without exposing a custom reason.
