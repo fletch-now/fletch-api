@@ -81,3 +81,11 @@ exact echo of the configured key. HTTP errors retain their status, numeric
 Retry-After and safe guidance; `FletchError.body` contains that guidance, never the
 upstream response body. Network and malformed-response errors omit upstream text.
 Caller cancellation keeps the `AbortError` name without exposing a custom reason.
+
+## Token markets
+
+`client.marketFilters()` reads the public catalog shared with the Markets page.
+`client.tokenMarkets(4663, { kind: "community", activity: "traded", sort: "volume", page: 1, pageSize: 25 })`
+returns one token page. Query types come from OpenAPI; filters combine with AND.
+Preserve each metric's source, observation time and unavailable reason. Numeric
+sorts put missing readings last. V3 quote holdings and V4 1% depth are separate.

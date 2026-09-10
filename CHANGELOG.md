@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- Add typed `tokenMarkets` and `marketFilters` reads for the shared Markets filter contract. Refresh the live specification, agent reference and generated types on 10 September 2026. npm publication remains pending.
+
+
 ## 0.2.0 — 2026-09-08 (prepared)
 
 - Reject redirects on JSON and SSE reads; retain safe status/retry guidance rather than upstream error bodies, and redact configured credentials from returned data.

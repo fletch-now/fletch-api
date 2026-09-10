@@ -274,3 +274,18 @@ test("caller abort keeps AbortError without exposing its custom reason", async f
     });
   }
 });
+
+test("token market helpers preserve combined filters, zero threshold and pagination", async function markets() {
+  const { fetch: fetchImpl, calls } = fakeFetch(function answer() { return jsonResponse({ items: [], total: 0 }); });
+  const client = new FletchClient({ fetch: fetchImpl });
+  await client.marketFilters();
+  assert.equal(new URL(calls[0]!.url).pathname, "/api/v1/chains/4663/markets/filters");
+  await client.tokenMarkets(4663, { kind: "community", trust: "community", sort: "swaps", activity: "traded", data: "volume", depth: "v3_10k", identity: "same_name", minVolumeUsd: 0, page: 2, pageSize: 25, q: "A&B" });
+  const url = new URL(calls[1]!.url);
+  assert.equal(url.pathname, "/api/v1/chains/4663/markets");
+  assert.equal(url.searchParams.get("minVolumeUsd"), "0");
+  assert.equal(url.searchParams.get("q"), "A&B");
+  assert.equal(url.searchParams.get("page"), "2");
+  assert.equal(url.searchParams.get("sort"), "swaps");
+  assert.equal(url.searchParams.get("identity"), "same_name");
+});

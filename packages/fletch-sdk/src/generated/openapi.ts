@@ -198,7 +198,7 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * List (and optionally search) registry assets on a chain, each with its live on-chain state
+         * Search issuer-listed assets and their recorded chain observations
          * @description Public. Anonymous callers get 120 requests a minute per address; a key or a session uses its own budget. Each asset carries `state`: multiplier, pending multiplier, pause flags, supply, canonical proof, the Chainlink feed and Robinhood's quote.
          */
         get: {
@@ -216,6 +216,8 @@ export interface paths {
                      * @example TSLA,AAPL
                      */
                     symbols?: string;
+                    /** @description Filter the Robinhood listing collection by its shared trust verdict. Community tokens are resolved by /tokens/{address} and listed under /dex/pools; they are not added to Robinhood's registry. */
+                    trust?: "verified" | "listed" | "lookalike" | "community" | "unknown";
                 };
                 header?: never;
                 path: {
@@ -305,7 +307,8 @@ export interface paths {
                                 trust?: {
                                     detail?: string;
                                     label?: string;
-                                    level?: string;
+                                    /** @enum {string} */
+                                    level?: "verified" | "listed" | "lookalike" | "community" | "unknown";
                                 };
                             })[];
                             /** @description The extra blocks a caller may request */
@@ -462,7 +465,8 @@ export interface paths {
                             trust?: {
                                 detail?: string;
                                 label?: string;
-                                level?: string;
+                                /** @enum {string} */
+                                level?: "verified" | "listed" | "lookalike" | "community" | "unknown";
                             };
                         };
                     };
@@ -840,7 +844,7 @@ export interface paths {
         };
         /**
          * Pools trading the asset on every DEX the registry reads, deepest first, with venue, price, liquidity, fee, hooks, last-day swaps and volume, and the pool behind the asset's premium to the feed
-         * @description Public. `venue` is `uniswap_v4` or `uniswap_v3`; a v4 pool is an id inside the one PoolManager and has a null `poolAddress`, a v3 pool is a contract and carries its address. A pool is recorded when one side is this asset and the other is a listed quote (USDG, WETH or another Stock Token). Pools are deepest first by `depthUsd`, how many dollars of the quote token it takes to move the pool's price by 1% — a ceiling, since a move that leaves the position's range runs out of liquidity first, and not the pool's token balance; `liquidity` is the pool's in-range Uniswap liquidity L in raw units, not a dollar figure, and is comparable only between pools of the same pair (its scale follows the two tokens' decimals). `best` is the deepest pool in dollars of any venue, which is the one the asset's premium to the Chainlink feed is measured from, and names its venue. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it, and are null for a pool discovered inside that window, whose earlier swaps the scan never read. `discovery` says how far each venue's pool scan has read: while `readingHistory` is true, a pool created in blocks the scan has not reached yet is not listed, and a venue whose `scanned` is false has not been read at all.
+         * @description Public. `venue` is `uniswap_v4` or `uniswap_v3`; a v4 pool is an id inside the one PoolManager and has a null `poolAddress`, a v3 pool is a contract and carries its address. A pool is recorded when one side is this asset and the other is a listed quote (USDG, WETH or another Stock Token). Pools are deepest first by `depthUsd`. V3 depth uses observed quote-side holdings. V4 depth uses a bounded quote estimate for a 1% price move, where per-pool token reserves are unavailable; `liquidity` is the pool's in-range Uniswap liquidity L in raw units, not a dollar figure, and is comparable only between pools of the same pair (its scale follows the two tokens' decimals). `best` is the deepest pool in dollars of any venue, which is the one the asset's premium to the Chainlink feed is measured from, and names its venue. `swaps24h` counts swap logs and `transactions24h` counts distinct transactions in (metricsAsOf - 24 hours, metricsAsOf], using each event block timestamp. Values are null until the entire window is indexed and when its end is more than 120 seconds old. `volumeUsd24h` uses the indexed quote leg. USDG is nominally denominated at 1 USDG = $1; WETH uses a recorded historical oracle estimate with at most one-hour archive sample age and an oracle answer within its published heartbeat. `volumeValuation` retains the method and coverage reason. Zero means a completely scanned window with no matching activity. `discovery` says how far each venue's pool scan has read: while `readingHistory` is true, a pool created in blocks the scan has not reached yet is not listed, and a venue whose `scanned` is false has not been read at all.
          */
         get: {
             parameters: {
@@ -1129,7 +1133,7 @@ export interface paths {
         };
         /**
          * The DEX venues the registry reads and what each contributes: pools trading a listed asset, how many carry a dollar price, the last day's swaps and volume, and how many assets take their premium from a pool there
-         * @description Public. One row per venue read (`uniswap_v4`, `uniswap_v3`), whether or not it has a pool on record yet, so `venues` and `discovery` name the same set. `assetsPricedHere` counts the assets whose deepest pool in dollars sits on that venue, so the venues' figures add up to the assets with a DEX price. `depthUsd` is the dollars of quote it takes to move a pool's price by 1%, added up over the venue's priced pools, and is the figure pools are ranked by; Uniswap's raw liquidity L compares two pools only when they hold the same pair. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it — swaps are tallied per UTC day, so the window is between 24 and 48 hours, not a rolling day — and a swap near midnight is attributed from the last block of the scan window that held it, so it can land on the neighbouring day. `checkedAt` is when the state read last priced a pool on that venue; `headAt` inside `discovery` is when the chain head there was read. `discovery` carries each venue's pool scan position against that head; while `readingHistory` is true the counts are a floor, not a total, and while `scanned` is false the venue has not been read at all. The Pons launchpad creates its pools on the Uniswap v3 factory, so they are counted as `uniswap_v3` rather than as a venue of their own.
+         * @description Public. One row per venue read (`uniswap_v4`, `uniswap_v3`), whether or not it has a pool on record yet, so `venues` and `discovery` name the same set. `assetsPricedHere` counts the assets whose deepest pool in dollars sits on that venue, so the venues' figures add up to the assets with a DEX price. `depthUsd` sums depth over the venue's priced pools: observed quote-side holdings for v3, and a bounded quote estimate for a 1% price move for v4 where per-pool token reserves are unavailable; Uniswap's raw liquidity L compares two pools only when they hold the same pair. `swaps24h` counts swap logs and `transactions24h` counts distinct transactions in (metricsAsOf - 24 hours, metricsAsOf], using each event block timestamp. Values are null until the entire window is indexed and when its end is more than 120 seconds old. `volumeUsd24h` uses the indexed quote leg. USDG is nominally denominated at 1 USDG = $1; WETH uses a recorded historical oracle estimate with at most one-hour archive sample age and an oracle answer within its published heartbeat. `volumeValuation` retains the method and coverage reason. Zero means a completely scanned window with no matching activity. `checkedAt` is when the state read last priced a pool on that venue; `headAt` inside `discovery` is when the chain head there was read. `discovery` carries each venue's pool scan position against that head; while `readingHistory` is true the counts are a floor, not a total, and while `scanned` is false the venue has not been read at all. The Pons launchpad creates its pools on the Uniswap v3 factory, so they are counted as `uniswap_v3` rather than as a venue of their own.
          */
         get: {
             parameters: {
@@ -1172,17 +1176,17 @@ export interface paths {
                                  * @description When the state read last priced a pool on this venue.
                                  */
                                 checkedAt?: string | null;
-                                /** @description Dollars of quote it takes to move a pool's price 1%, added up over the venue's priced pools. */
+                                /** @description Depth in USD uses observed quote-side holdings for v3. For v4 it uses a bounded quote estimate for a 1% price move; per-pool token reserves are unavailable. Check the pool's observation time and stateCurrent flag. Venue depth is the sum over its priced pools. */
                                 depthUsd?: number | null;
                                 /** @description Pools that trade a listed asset against a listed quote. */
                                 pools: number;
                                 /** @description Of those, how many the state read has put a dollar price on. */
                                 pricedPools: number;
-                                /** @description Swaps over the current UTC day and the one before it. */
-                                swaps24h: number;
+                                /** @description Swap logs in the exact indexed 24-hour window, null for incomplete or stale coverage. */
+                                swaps24h: number | null;
                                 /** @enum {string} */
                                 venue: "uniswap_v4" | "uniswap_v3";
-                                /** @description USD over the same window, valued at each pool's current dollar price. */
+                                /** @description USD over the same exact window using historical per-swap valuations; null when valuations are incomplete. */
                                 volumeUsd24h?: number | null;
                             }[];
                         };
@@ -1228,8 +1232,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Every pool on every DEX the registry reads, listed and community alike, one page at a time: the pair, the priced side, price, depth, the last day's swaps and volume, and FDV for an unlisted token
-         * @description Public. The market table behind a DexScreener-style page. `kind=listed` keeps pools with one side on Robinhood's list; `kind=community` keeps pools whose priced side is a token the list does not carry, described by `token` from its own contract and verified by nobody; `kind=lookalike` keeps the community pools whose token borrows a listed ticker or name at another address. `trust` is accepted as a synonym for `kind`. `sort` defaults to `volume`: fresh measured 24h volume, then measured quote-side depth and swap count. Missing values sort last; `traction` uses the same relevance ordering. `depth`, `swaps` and `newest` are explicit alternatives. `q` takes a listed ticker, a token symbol or name by prefix, a token contract address, a Uniswap v3 pool address, or a Uniswap v4 pool id. `total` counts every pool that matches before paging. A pool the state read has not reached carries nulls; a community pool whose token has not answered decimals() stays unpriced. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it.
+         * Indexed pools with token identity, separate depth measures and current swap observations
+         * @description Public. `kind=listed` filters membership in Robinhood's list; `kind=community` keeps unlisted priced tokens; `kind=lookalike` selects recorded collisions. The response `kind` is an alias of the canonical `trust` verdict; `listing` retains membership separately. `sort=volume` ranks actual current 24-hour volume, missing values last, with pool identity as the tie-break. `traction` explicitly adds depth and swap-count tie-breaks. Search accepts token names, tickers, full contracts, v3 pool addresses and v4 pool IDs. Swap and transaction counts require a complete current window. Volume sources distinguish nominal USDG denomination and historical WETH oracle estimates. V3 quote holdings and V4 bounded 1% quote input retain distinct labels and never form a combined TVL.
          */
         get: {
             parameters: {
@@ -1293,16 +1297,34 @@ export interface paths {
                                 createdBlock: string;
                                 currency0: string;
                                 currency1: string;
+                                /** @enum {string} */
+                                depthMeasure?: "quote_holdings" | "bounded_one_percent_quote" | "unavailable";
+                                depthSource?: string | null;
+                                /** @description Depth in USD uses observed quote-side holdings for v3. For v4 it uses a bounded quote estimate for a 1% price move; per-pool token reserves are unavailable. Check the pool's observation time and stateCurrent flag. */
                                 depthUsd?: number | null;
                                 fee: number;
                                 feeDynamic?: boolean;
                                 feePct?: number | null;
                                 hooks?: string;
-                                /** @enum {string} */
-                                kind: "listed" | "community";
+                                /**
+                                 * @description Alias of trust for the priced token. Listing membership is separate.
+                                 * @enum {string}
+                                 */
+                                kind: "verified" | "listed" | "community" | "lookalike" | "unknown";
                                 /** Format: date-time */
                                 lastSwapAt?: string | null;
                                 liquidity?: string | null;
+                                /** @enum {string} */
+                                listing?: "listed" | "unlisted";
+                                /**
+                                 * Format: date-time
+                                 * @description End of the indexed 24-hour window; metrics expire after 120 seconds.
+                                 */
+                                metricsAsOf?: string | null;
+                                metricsCoverageComplete?: boolean;
+                                metricsCurrent?: boolean;
+                                /** Format: date-time */
+                                metricsWindowStartAt?: string | null;
                                 poolAddress?: string | null;
                                 poolId: string;
                                 priceInQuote?: number | null;
@@ -1319,16 +1341,20 @@ export interface paths {
                                 tick?: number | null;
                                 tickSpacing?: number;
                                 /**
-                                 * @description active: depth of $100 or a swap in the last week, read every ten minutes; quiet: a little depth, no recent swap, read daily; dormant: drained or empty for a month, read weekly.
+                                 * @description Active pools are prioritized for background sampling; quiet pools receive a daily cycle; dormant pools receive demand-driven reads. Scheduling does not establish freshness: inspect stateCheckedAt and stateCurrent.
                                  * @enum {string}
                                  */
                                 tier?: "active" | "quiet" | "dormant";
                                 /** @description The unlisted side of a community pool, as its own contract describes it. Nothing here is verified. */
                                 token?: {
                                     address?: string;
+                                    /** @description Sum of readable balances at the zero and dead addresses, in base units. */
+                                    burnedRaw?: string | null;
                                     decimals?: number | null;
                                     /** @description Total supply times the pool's dollar price. */
                                     fdvUsd?: number | null;
+                                    /** @description Total supply minus zero/dead-address balances, times the pool price. An upper bound on circulating value. Null without supply, burn balances, decimals or usable price, or when recorded burns exceed supply. Confirmed zero outstanding supply renders zero. */
+                                    marketCapUsd?: number | null;
                                     name?: string | null;
                                     /** Format: date-time */
                                     readAt?: string | null;
@@ -1336,9 +1362,21 @@ export interface paths {
                                     /** @description Base units; divide by 10^decimals. */
                                     totalSupplyRaw?: string | null;
                                 } | null;
+                                tokenAddress?: string | null;
+                                /** @description Distinct transactions in the exact indexed 24-hour window. */
+                                transactions24h?: number | null;
+                                /** @enum {string} */
+                                trust?: "verified" | "listed" | "community" | "lookalike" | "unknown";
+                                trustDetail?: string;
                                 /** @enum {string} */
                                 venue: "uniswap_v4" | "uniswap_v3";
+                                /** @description Sum of absolute currency0 swap amounts in base units, only for a complete current window. */
+                                volume0Raw?: string | null;
+                                /** @description Sum of absolute currency1 swap amounts in base units. Separate from currency0; the legs are never added together. */
+                                volume1Raw?: string | null;
                                 volumeUsd24h?: number | null;
+                                /** @description Historical quote method, source and missing-value reason. USDG is nominal denomination; WETH uses a bounded-age historical oracle estimate. */
+                                volumeValuation?: Record<string, unknown> | null;
                             }[];
                             q?: string | null;
                             sort?: string;
@@ -1715,8 +1753,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Every ERC-20 that borrows a listed ticker or exact name at another address, with holders and the beacon check that separates an impostor from an issuer-deployed token
-         * @description Public. Most held first. `limit` caps rows (default 300, max 1000); `offset` skips that many rows, so `offset=1000&limit=1000` is the second page, and a page shorter than `limit` is the last one. Holder counts are refreshed by the lookalike scan, so the order can shift between pages read across a scan: a consumer copying the whole table dedupes by `address`.
+         * Recorded name and ticker collisions at different contract addresses, with available holder counts and beacon checks
+         * @description Public. Most held first. A collision describes reused labels; it does not establish intent or issuer identity. `limit` caps rows (default 300, max 1000); `offset` skips that many rows, so `offset=1000&limit=1000` is the second page, and a page shorter than `limit` is the last one. Holder counts are refreshed by the lookalike scan, so the order can shift between pages read across a scan: a consumer copying the whole table dedupes by `address`.
          */
         get: {
             parameters: {
@@ -1749,6 +1787,362 @@ export interface paths {
                     };
                 };
                 /** @description Unknown chain */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chains/{chainId}/markets": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Priority tokens, one contract per row, ordered by observed selected-pool volume
+         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries its source, observation time and a reason when unavailable. Volume covers the selected pool only. Missing volume sorts last with a stable name/address tie-break. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description all: Include incomplete and unavailable swap windows. traded: At least one swap in a complete current 24-hour window. busy: At least 100 swaps in a complete current window. quiet: A complete current window with exactly zero swaps. */
+                    activity?: "all" | "traded" | "busy" | "quiet";
+                    /** @description all: Keep unavailable measures with their reason. priced: Usable selected-pool price observed within 15 minutes. volume: Valued 24-hour window counted through the last two minutes. complete: All three measures have usable current inputs. */
+                    data?: "all" | "priced" | "volume" | "complete";
+                    /** @description all: Keep both pool types and unavailable observations. v3_10k: At least $10,000 of current quote-side holdings. v3_100k: At least $100,000 of current quote-side holdings. v4_1k: At least $1,000 of bounded quote input for a 1% move. v4_10k: At least $10,000 of bounded quote input for a 1% move. */
+                    depth?: "all" | "v3_10k" | "v3_100k" | "v4_1k" | "v4_10k";
+                    /** @description all: One row per recorded priority contract. dominant: Community contracts selected by the recorded economic comparison. same_name: Contracts with alternatives in the recorded comparison set. close_call: The dominance comparison recorded a close call. */
+                    identity?: "all" | "dominant" | "same_name" | "close_call";
+                    /** @description all: Issuer listings and priority community contracts. listed: Contracts in the issuer list, including pending checks. community: Priority contracts outside the issuer list. Check their trust badge. */
+                    kind?: "all" | "listed" | "community";
+                    /** @description Inclusive selected-pool USD volume threshold. Requires a complete current valued window. */
+                    minVolumeUsd?: number;
+                    page?: number;
+                    pageSize?: 25 | 50;
+                    q?: string;
+                    /** @description volume: Selected-pool USD volume, highest first. swaps: Selected-pool swap events, highest first. market_cap: Outstanding supply estimate times current price, highest first. v3_depth: Observed quote-side holdings in dollars, highest first. v4_depth: Bounded quote input for a 1% move, highest first. name: Alphabetical name, then contract address. */
+                    sort?: "volume" | "swaps" | "market_cap" | "v3_depth" | "v4_depth" | "name";
+                    /** @description all: Keep every recorded identity verdict. verified: Issuer listing and matching contract checks. listed: Issuer listing with checks still incomplete. community: Resolved metadata with no recorded issuer-name collision. lookalike: Name or symbol collides with a verified asset. unknown: Identity calls have not resolved this contract. */
+                    trust?: "all" | "verified" | "listed" | "community" | "lookalike" | "unknown";
+                };
+                header?: never;
+                path: {
+                    chainId: 4663;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description A page of token observations */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @description Normalized non-default filter values; defaults are in filterDefinitionsUrl. Page and pageSize are returned separately. */
+                            appliedFilters?: {
+                                [key: string]: string;
+                            };
+                            /** Format: date-time */
+                            asOf: string;
+                            chainId: number;
+                            filterDefinitionsUrl?: string;
+                            items: {
+                                address: string;
+                                alternatives: {
+                                    address: string;
+                                    name: string | null;
+                                    reason: string;
+                                    symbol: string | null;
+                                }[];
+                                assetId?: string | null;
+                                bestPoolId?: string | null;
+                                burnedRaw?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: string | null;
+                                };
+                                chainId: number;
+                                closeCall?: boolean;
+                                decimals?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                dominantAddress?: string | null;
+                                holders: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                marketCapUsd: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                metadataReason?: string | null;
+                                name?: string | null;
+                                poolCount?: number;
+                                priceUsd: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                selectionReason: string;
+                                swaps24h?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                symbol?: string | null;
+                                totalSupplyRaw?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: string | null;
+                                };
+                                transactions24h?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                /** @enum {string} */
+                                trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
+                                v3QuoteHoldingsUsd?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                v4OnePercentDepthUsd?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                /** @constant */
+                                volumeScope: "selected_pool";
+                                volumeUsd24h: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                            }[];
+                            note?: string;
+                            page: number;
+                            pageSize: number;
+                            scope?: string;
+                            sort: string;
+                            total: number;
+                        };
+                    };
+                };
+                /** @description Invalid query */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Unsupported chain */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chains/{chainId}/markets/filters": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discover token-market filters, labels, thresholds and useful query presets
+         * @description The catalog used by the token Markets page and query parser. Combine filters with AND. Activity requires a complete current selected-pool window. Numeric thresholds exclude unavailable data, including for a threshold of zero. V3 quote holdings and V4 bounded depth are separate filters and sorts.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    chainId: 4663;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Machine-readable market filter catalog */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            /** @constant */
+                            chainId: 4663;
+                            combination: string;
+                            filters: {
+                                activity: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                data: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                depth: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                identity: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                kind: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                sort: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                trust: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                            };
+                            minVolumeUsd: {
+                                description: string;
+                                label: string;
+                                maximum: number;
+                                minimum: number;
+                            };
+                            ordering: string;
+                            presets: {
+                                label: string;
+                                query: {
+                                    [key: string]: string;
+                                };
+                            }[];
+                            scope: string;
+                            version: number;
+                        };
+                    };
+                };
+                /** @description Unsupported chain */
                 404: {
                     headers: {
                         [name: string]: unknown;
@@ -1832,6 +2226,45 @@ export interface paths {
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
                             summary?: string;
+                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. Historical USD valuations remain unavailable. */
+                            swapIndexer?: {
+                                /** Format: date-time */
+                                checkedAt: string;
+                                /** @constant */
+                                coverageScope?: "priority_pools";
+                                /** @description The indexed boundary is at most 120 seconds old; individual pools also require complete coverage. */
+                                current: boolean;
+                                headBlock: string | null;
+                                /** Format: date-time */
+                                headReadAt: string | null;
+                                /** @description True when complete current indexed pools include historical quote valuations; does not claim all pools are covered. */
+                                historicalUsdAvailable: boolean;
+                                lagBlocks: string | null;
+                                /** @description Wall-clock age of the newest indexed block, independent of assumed block cadence. */
+                                lagSeconds: number | null;
+                                /** @constant */
+                                mode: "live_and_backwards";
+                                /** Format: date-time */
+                                newestCountedAt: string | null;
+                                newestCountedBlock: string | null;
+                                priorityComplete24hPools?: number;
+                                priorityPoolCount?: number;
+                                priorityValued24hPools?: number;
+                                tiers: {
+                                    complete24hPools: number;
+                                    enrolledPools: number;
+                                    /** @enum {string} */
+                                    tier: "active" | "quiet" | "dormant";
+                                    totalPools: number;
+                                }[];
+                                /** @constant */
+                                tiersScope?: "canonical_catalog_pools";
+                                valuationMethods?: ("usdg_nominal" | "historical_chainlink_window_start")[];
+                                /** Format: date-time */
+                                windowEndAt: string | null;
+                                /** Format: date-time */
+                                windowStartAt: string | null;
+                            };
                             /** @enum {string} */
                             verdict?: "live" | "degraded" | "stale" | "never";
                         };
@@ -1993,6 +2426,45 @@ export interface paths {
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
                             summary?: string;
+                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. Historical USD valuations remain unavailable. */
+                            swapIndexer?: {
+                                /** Format: date-time */
+                                checkedAt: string;
+                                /** @constant */
+                                coverageScope?: "priority_pools";
+                                /** @description The indexed boundary is at most 120 seconds old; individual pools also require complete coverage. */
+                                current: boolean;
+                                headBlock: string | null;
+                                /** Format: date-time */
+                                headReadAt: string | null;
+                                /** @description True when complete current indexed pools include historical quote valuations; does not claim all pools are covered. */
+                                historicalUsdAvailable: boolean;
+                                lagBlocks: string | null;
+                                /** @description Wall-clock age of the newest indexed block, independent of assumed block cadence. */
+                                lagSeconds: number | null;
+                                /** @constant */
+                                mode: "live_and_backwards";
+                                /** Format: date-time */
+                                newestCountedAt: string | null;
+                                newestCountedBlock: string | null;
+                                priorityComplete24hPools?: number;
+                                priorityPoolCount?: number;
+                                priorityValued24hPools?: number;
+                                tiers: {
+                                    complete24hPools: number;
+                                    enrolledPools: number;
+                                    /** @enum {string} */
+                                    tier: "active" | "quiet" | "dormant";
+                                    totalPools: number;
+                                }[];
+                                /** @constant */
+                                tiersScope?: "canonical_catalog_pools";
+                                valuationMethods?: ("usdg_nominal" | "historical_chainlink_window_start")[];
+                                /** Format: date-time */
+                                windowEndAt: string | null;
+                                /** Format: date-time */
+                                windowStartAt: string | null;
+                            };
                             /** @enum {string} */
                             verdict?: "live" | "degraded" | "stale" | "never";
                         };
@@ -2027,8 +2499,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * What a token at an address is: listed and confirmed, listed and unconfirmed, impersonating a listed asset, a community token nobody has vouched for, or unreadable
-         * @description Public. The check to run before an address is pasted anywhere. `trust` is `verified` (Robinhood lists this address and the contract answers with the listed symbol and decimals), `listed` (on the list, not yet confirmed against the chain), `lookalike` (not on the list, and its symbol or name folds to a verified asset's — `impersonates` names the real one and its address), `community` (found on chain, read from its own contract, vouched for by nobody) or `unknown` (nothing answered at this address). Symbols are compared with homoglyphs folded and invisible characters stripped, so a Cyrillic ТSLA is caught as a lookalike of TSLA. `source` says where the facts came from: `registry` is Robinhood's list, `discovered` is the token's own contract as the registry daemon read it, `none` is an address nobody has read. `market` is the deepest pool Fletch has priced from its own reserves, in dollars, and is null when no pool has been priced. A null is a figure not read, never a zero.
+         * Token identity and current market observations at one contract address
+         * @description Public. The canonical trust verdict is shared by pages and pool responses. A lookalike records a normalized name or ticker collision; it does not establish intent. `reading` is the exact token-page observation: full address, economic selection reason, same-name alternatives, selected-pool volume, market cap and holders with source, timestamp and missing-value reason. Community dominance is an economic comparison. `market` retains the compact selected-pool view. V3 quote holdings and V4 bounded 1% quote input are separate measures. Volume sources distinguish nominal USDG quote units from WETH converted with a historical oracle estimate.
          */
         get: {
             parameters: {
@@ -2065,9 +2537,14 @@ export interface paths {
                             label: string;
                             market?: {
                                 depthUsd?: number | null;
+                                /** Format: date-time */
+                                metricsAsOf?: string | null;
                                 poolId?: string;
+                                /** @constant */
+                                priceSource?: "dex";
                                 priceUsd?: number | null;
                                 swaps24h?: number | null;
+                                transactions24h?: number | null;
                                 venue?: string;
                                 volumeUsd24h?: number | null;
                             } | null;
@@ -2075,6 +2552,106 @@ export interface paths {
                             note?: string;
                             /** Format: date-time */
                             readAt?: string | null;
+                            reading?: {
+                                address: string;
+                                alternatives: {
+                                    address: string;
+                                    name: string | null;
+                                    reason: string;
+                                    symbol: string | null;
+                                }[];
+                                assetId?: string | null;
+                                bestPoolId?: string | null;
+                                burnedRaw?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: string | null;
+                                };
+                                chainId: number;
+                                closeCall?: boolean;
+                                decimals?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                dominantAddress?: string | null;
+                                holders: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                marketCapUsd: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                metadataReason?: string | null;
+                                name?: string | null;
+                                poolCount?: number;
+                                priceUsd: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                selectionReason: string;
+                                swaps24h?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                symbol?: string | null;
+                                totalSupplyRaw?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: string | null;
+                                };
+                                transactions24h?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                /** @enum {string} */
+                                trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
+                                v3QuoteHoldingsUsd?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                v4OnePercentDepthUsd?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                                /** @constant */
+                                volumeScope: "selected_pool";
+                                volumeUsd24h: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    reason: string | null;
+                                    source: string | null;
+                                    value: number | null;
+                                };
+                            } | null;
                             registryUrl?: string | null;
                             /** @enum {string} */
                             source: "registry" | "discovered" | "none";
@@ -3522,6 +4099,106 @@ export interface components {
             /** @enum {string} */
             status: "pending" | "sent" | "failed" | "retracted";
             watcherId: string;
+        };
+        TokenMarket: {
+            address: string;
+            alternatives: {
+                address: string;
+                name: string | null;
+                reason: string;
+                symbol: string | null;
+            }[];
+            assetId?: string | null;
+            bestPoolId?: string | null;
+            burnedRaw?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: string | null;
+            };
+            chainId: number;
+            closeCall?: boolean;
+            decimals?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            dominantAddress?: string | null;
+            holders: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            marketCapUsd: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            metadataReason?: string | null;
+            name?: string | null;
+            poolCount?: number;
+            priceUsd: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            selectionReason: string;
+            swaps24h?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            symbol?: string | null;
+            totalSupplyRaw?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: string | null;
+            };
+            transactions24h?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            /** @enum {string} */
+            trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
+            v3QuoteHoldingsUsd?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            v4OnePercentDepthUsd?: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
+            /** @constant */
+            volumeScope: "selected_pool";
+            volumeUsd24h: {
+                /** Format: date-time */
+                asOf: string | null;
+                reason: string | null;
+                source: string | null;
+                value: number | null;
+            };
         };
         Watcher: {
             address: string;

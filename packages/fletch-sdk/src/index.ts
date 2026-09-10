@@ -271,6 +271,14 @@ export class FletchClient {
     return result.body as unknown as Freshness;
   }
 
+  async tokenMarkets(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/markets">): Promise<Body<"/chains/{chainId}/markets">> {
+    return (await this.get("/chains/{chainId}/markets", requestOptions({ chainId }, query))).body;
+  }
+
+  async marketFilters(chainId: number = MAINNET_CHAIN_ID): Promise<Body<"/chains/{chainId}/markets/filters">> {
+    return (await this.get("/chains/{chainId}/markets/filters", { path: { chainId } })).body;
+  }
+
   async assets(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/assets">): Promise<Body<"/chains/{chainId}/assets">> {
     return (await this.get("/chains/{chainId}/assets", requestOptions({ chainId }, query))).body;
   }
