@@ -89,3 +89,28 @@ Caller cancellation keeps the `AbortError` name without exposing a custom reason
 returns one token page. Query types come from OpenAPI; filters combine with AND.
 Preserve each metric's source, observation time and unavailable reason. Numeric
 sorts put missing readings last. V3 quote holdings and V4 1% depth are separate.
+
+## Reading current metric evidence
+
+Start with one address or one bounded page. A response's fetch time does not
+refresh its inputs, and an economic selection does not verify issuer origin.
+The generated `MetricObservation`, `MetricInput`, `MarketSelection` and
+`TokenMarket` exports retain the API's structured evidence without recomputing
+values. Status jobs expose nullable `metricCoverage`; `current` and `failed`
+counts may overlap when a failed refresh retains an older usable observation.
+
+```ts
+const page = await fletch.tokenMarkets(4663, { q: "TSLA", pageSize: 25 });
+for (const token of page.items) {
+  const metric = token.marketCapUsd;
+  const { expiresAt, status, readStatus, inputs } = metric.observation;
+  const current = status === "current" && expiresAt !== null
+    && Date.now() <= Date.parse(expiresAt);
+  console.log(token.address, current ? metric.value : null, readStatus, inputs);
+}
+```
+
+Inspect source time, fetch time, block/hash, computation method and coverage.
+Market cap expires with its earliest required supply, burn, decimals or price
+input. An expired value stays unavailable; a zero stays zero. See the repository's
+[metric freshness contract](../../docs/FRESHNESS.md).

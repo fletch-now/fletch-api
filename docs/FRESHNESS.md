@@ -151,8 +151,8 @@ The second case catches a job that runs on time but writes nothing.
 
 ## Pool state and metadata coverage
 
-A pool's `stateCurrent` requires an actual state observation within ten minutes,
-with no future timestamp. Stale, unread or future state suppresses current price,
+A pool's `stateCurrent` requires an actual state observation within three minutes,
+with no future timestamp and a current independently observed quote conversion when recorded. Stale, unread or future state suppresses current price,
 quote price, depth, raw liquidity/sqrt/tick and price-derived valuations/changes;
 `pricePublished` is false. `stateCheckedAt` retains the original read time. Current
 state alone does not guarantee a publishable price: quote support and depth also
@@ -169,3 +169,38 @@ On 8 September at 17:45:33 UTC, live status was 28 fresh jobs plus three filling
 jobs. That observation is historical, not a current health assertion. Historical
 transfer coverage and legacy two-UTC-day swap fields remain incomplete; never infer
 exact rolling 24-hour activity or historical USD from a current pool price.
+
+## Metric observations and coverage
+
+Token Markets and a token's `reading` return `observation` alongside every
+metric. The generated SDK exports `MetricObservation`, `MetricInput`,
+`MarketSelection` and `TokenMarket` from that schema. `sourceId` identifies the
+source; `blockNumber` and `blockHash` retain the pinned block when recorded.
+`sourceAt` describes the upstream observation, while `fetchedAt` describes when
+it was obtained. Unknown timestamps stay null; explorer snapshots may have a
+fetch time without an upstream source time.
+
+`expiresAt` is an inclusive freshness boundary. Compare it with the current
+clock even when a cached response retains `status: current`. `status` describes
+age/validity; `readStatus` independently reports `ok`, `partial`, `failed` or
+`unread`. A retained current value may have a failed latest refresh. Preserve
+that failure, the original source time, nulls and the stated coverage.
+
+`method`, `parameters` and recursive `inputs` describe computations. Market cap
+uses supply, burn balances, decimals and price and expires with its earliest
+expiring required input. Volume retains its selected-pool scope and quote
+valuation inputs; nominal USDG and historical oracle estimates have distinct
+methods. Supply and burn observations expire after five minutes. A price time
+cannot stand in for their reading time.
+
+`selection` carries `selectedAt`, `expiresAt`, `status` and a versioned `policy`.
+An expired selection withholds `dominantAddress`; economic comparison establishes
+no issuer identity. A matching beacon records a dependency, and legacy
+`unlisted_stock` lookalikes are returned as `unverified`.
+
+Each Status job includes nullable `metricCoverage`, a metric-name map of
+`eligible`, `current`, `failed`, `unread`, `oldestInputAgeSeconds` and `measuredAt`.
+Current and failed counts may overlap after a failed refresh. Null coverage
+means no measurement is recorded. Age the counts from `measuredAt`; successful
+scheduling cannot refresh those observations. `swapIndexer` separately reports
+indexed progress and complete/valued priority-pool coverage.

@@ -59,3 +59,7 @@ MIT, see `LICENSE`.
 Use [the freshness guide](docs/FRESHNESS.md) for `stateCurrent`, metadata backlog
 and field timestamps. A live job verdict alone does not establish fresh prices.
 [Full agent reference](https://fletch.now/llms-full.txt).
+
+The SDK also exports structured metric observation and selection types. Markets
+can be read one filtered page at a time; inspect each metric's expiry and inputs,
+and each Status job's `metricCoverage`, independently from scheduler health.

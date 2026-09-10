@@ -199,7 +199,7 @@ export interface paths {
         };
         /**
          * Search issuer-listed assets and their recorded chain observations
-         * @description Public. Anonymous callers get 120 requests a minute per address; a key or a session uses its own budget. Each asset carries `state`: multiplier, pending multiplier, pause flags, supply, canonical proof, the Chainlink feed and Robinhood's quote.
+         * @description Public. Anonymous callers get 120 requests a minute per address; a key or a session uses its own budget. Each asset carries `state`: multiplier, pending multiplier, pause flags, supply, recorded beacon dependency, the Chainlink feed and Robinhood's quote.
          */
         get: {
             parameters: {
@@ -1332,10 +1332,31 @@ export interface paths {
                                 pricePublished: boolean;
                                 priceUsd?: number | null;
                                 quote?: string | null;
+                                /** @description Quote conversion captured with the pool snapshot. Null for older observations. A fixed USDG notional assumption has no oracle source timestamp. */
+                                quoteObservation?: {
+                                    blockHash: string | null;
+                                    blockNumber: string | null;
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    /** Format: date-time */
+                                    fetchedAt: string | null;
+                                    method: string;
+                                    /** @description Structured computation parameters, including historical quote sampling/oracle times and valuation assumptions when recorded. */
+                                    parameters: {
+                                        [key: string]: string | number | boolean | null;
+                                    };
+                                    reason: string | null;
+                                    source: string | null;
+                                    /** Format: date-time */
+                                    sourceAt: string | null;
+                                    /** @description Stable source kind and identity; null when the stored source has no structured identity. */
+                                    sourceId: string | null;
+                                    value: number | null;
+                                } | null;
                                 sqrtPriceX96?: string | null;
                                 /** Format: date-time */
                                 stateCheckedAt?: string | null;
-                                /** @description The pool state was observed within ten minutes and its timestamp is not in the future. When false, depth, price, FDV and price changes are null; stateCheckedAt retains the actual observation time. */
+                                /** @description The pool state was observed within three minutes, its timestamp is not in the future, and its captured quote conversion has not expired. When false, depth, price, FDV and price changes are null; stateCheckedAt retains the actual observation time. */
                                 stateCurrent: boolean;
                                 swaps24h?: number | null;
                                 tick?: number | null;
@@ -1358,6 +1379,12 @@ export interface paths {
                                     name?: string | null;
                                     /** Format: date-time */
                                     readAt?: string | null;
+                                    /** @description Supply and recorded burn balances are at most five minutes old. FDV and capitalization are withheld otherwise. */
+                                    supplyCurrent?: boolean;
+                                    /** Format: date-time */
+                                    supplyExpiresAt?: string | null;
+                                    /** Format: date-time */
+                                    supplyReadAt?: string | null;
                                     symbol?: string | null;
                                     /** @description Base units; divide by 10^decimals. */
                                     totalSupplyRaw?: string | null;
@@ -1827,14 +1854,14 @@ export interface paths {
         };
         /**
          * Priority tokens, one contract per row, ordered by observed selected-pool volume
-         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries its source, observation time and a reason when unavailable. Volume covers the selected pool only. Missing volume sorts last with a stable name/address tie-break. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
+         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries structured observation provenance, computation inputs, coverage, source/fetch times and expiry, alongside compatibility source/asOf/reason fields. Pool state expires after three minutes, changing supply and burn balances after five minutes, and selected-pool swap windows after two minutes. Capitalization expires with its earliest-expiring required input. Missing legacy provenance remains null. Selection time and its fifteen-minute policy expiry are explicit; stale selection withholds dominance. Volume covers the selected pool only. Missing volume sorts last with a stable name/address tie-break. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
          */
         get: {
             parameters: {
                 query?: {
                     /** @description all: Include incomplete and unavailable swap windows. traded: At least one swap in a complete current 24-hour window. busy: At least 100 swaps in a complete current window. quiet: A complete current window with exactly zero swaps. */
                     activity?: "all" | "traded" | "busy" | "quiet";
-                    /** @description all: Keep unavailable measures with their reason. priced: Usable selected-pool price observed within 15 minutes. volume: Valued 24-hour window counted through the last two minutes. complete: All three measures have usable current inputs. */
+                    /** @description all: Keep unavailable measures with their reason. priced: Usable selected-pool price with pool state and quote conversion inside their three-minute freshness policy. volume: Valued 24-hour window counted through the last two minutes. complete: All three measures have usable current inputs. */
                     data?: "all" | "priced" | "volume" | "complete";
                     /** @description all: Keep both pool types and unavailable observations. v3_10k: At least $10,000 of current quote-side holdings. v3_100k: At least $100,000 of current quote-side holdings. v4_1k: At least $1,000 of bounded quote input for a 1% move. v4_10k: At least $10,000 of bounded quote input for a 1% move. */
                     depth?: "all" | "v3_10k" | "v3_100k" | "v4_1k" | "v4_10k";
@@ -1886,8 +1913,12 @@ export interface paths {
                                 assetId?: string | null;
                                 bestPoolId?: string | null;
                                 burnedRaw?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: string | null;
@@ -1895,23 +1926,35 @@ export interface paths {
                                 chainId: number;
                                 closeCall?: boolean;
                                 decimals?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 dominantAddress?: string | null;
                                 holders: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 marketCapUsd: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -1920,31 +1963,58 @@ export interface paths {
                                 name?: string | null;
                                 poolCount?: number;
                                 priceUsd: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
+                                /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
+                                selection: {
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    /** @description Versioned bounded selection: issuer listing, otherwise V3 quote holdings at least $10,000, otherwise V4 bounded 1% estimate at least $100. No issuer verification is inferred from economics. */
+                                    policy: string;
+                                    /** Format: date-time */
+                                    selectedAt: string | null;
+                                    /** @enum {string} */
+                                    status: "current" | "stale" | "missing" | "invalid";
+                                };
                                 selectionReason: string;
                                 swaps24h?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 symbol?: string | null;
                                 totalSupplyRaw?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: string | null;
                                 };
                                 transactions24h?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -1952,15 +2022,23 @@ export interface paths {
                                 /** @enum {string} */
                                 trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
                                 v3QuoteHoldingsUsd?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 v4OnePercentDepthUsd?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -1968,8 +2046,12 @@ export interface paths {
                                 /** @constant */
                                 volumeScope: "selected_pool";
                                 volumeUsd24h: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -2222,11 +2304,23 @@ export interface paths {
                                     total: number;
                                     visibleDue: number;
                                 } | null;
+                                /** @description Per-metric catalog coverage measured by the job, independent from scheduler health. Current and failed may overlap when a failed refresh retains a current observation. Age these counts from measuredAt; a fresh scheduler does not make older counts current. */
+                                metricCoverage: {
+                                    [key: string]: {
+                                        current: number;
+                                        eligible: number;
+                                        failed: number;
+                                        /** Format: date-time */
+                                        measuredAt: string;
+                                        oldestInputAgeSeconds: number | null;
+                                        unread: number;
+                                    };
+                                } | null;
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
                             summary?: string;
-                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. Historical USD valuations remain unavailable. */
+                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
                                 /** Format: date-time */
                                 checkedAt: string;
@@ -2422,11 +2516,23 @@ export interface paths {
                                     total: number;
                                     visibleDue: number;
                                 } | null;
+                                /** @description Per-metric catalog coverage measured by the job, independent from scheduler health. Current and failed may overlap when a failed refresh retains a current observation. Age these counts from measuredAt; a fresh scheduler does not make older counts current. */
+                                metricCoverage: {
+                                    [key: string]: {
+                                        current: number;
+                                        eligible: number;
+                                        failed: number;
+                                        /** Format: date-time */
+                                        measuredAt: string;
+                                        oldestInputAgeSeconds: number | null;
+                                        unread: number;
+                                    };
+                                } | null;
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
                             summary?: string;
-                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. Historical USD valuations remain unavailable. */
+                            /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
                                 /** Format: date-time */
                                 checkedAt: string;
@@ -2563,8 +2669,12 @@ export interface paths {
                                 assetId?: string | null;
                                 bestPoolId?: string | null;
                                 burnedRaw?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: string | null;
@@ -2572,23 +2682,35 @@ export interface paths {
                                 chainId: number;
                                 closeCall?: boolean;
                                 decimals?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 dominantAddress?: string | null;
                                 holders: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 marketCapUsd: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -2597,31 +2719,58 @@ export interface paths {
                                 name?: string | null;
                                 poolCount?: number;
                                 priceUsd: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
+                                /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
+                                selection: {
+                                    /** Format: date-time */
+                                    expiresAt: string | null;
+                                    /** @description Versioned bounded selection: issuer listing, otherwise V3 quote holdings at least $10,000, otherwise V4 bounded 1% estimate at least $100. No issuer verification is inferred from economics. */
+                                    policy: string;
+                                    /** Format: date-time */
+                                    selectedAt: string | null;
+                                    /** @enum {string} */
+                                    status: "current" | "stale" | "missing" | "invalid";
+                                };
                                 selectionReason: string;
                                 swaps24h?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 symbol?: string | null;
                                 totalSupplyRaw?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: string | null;
                                 };
                                 transactions24h?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -2629,15 +2778,23 @@ export interface paths {
                                 /** @enum {string} */
                                 trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
                                 v3QuoteHoldingsUsd?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
                                 };
                                 v4OnePercentDepthUsd?: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -2645,8 +2802,12 @@ export interface paths {
                                 /** @constant */
                                 volumeScope: "selected_pool";
                                 volumeUsd24h: {
-                                    /** Format: date-time */
+                                    /**
+                                     * Format: date-time
+                                     * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                                     */
                                     asOf: string | null;
+                                    observation: components["schemas"]["MetricObservation"];
                                     reason: string | null;
                                     source: string | null;
                                     value: number | null;
@@ -4079,6 +4240,69 @@ export interface components {
         Error: {
             error: string;
         };
+        /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
+        MarketSelection: {
+            /** Format: date-time */
+            expiresAt: string | null;
+            /** @description Versioned bounded selection: issuer listing, otherwise V3 quote holdings at least $10,000, otherwise V4 bounded 1% estimate at least $100. No issuer verification is inferred from economics. */
+            policy: string;
+            /** Format: date-time */
+            selectedAt: string | null;
+            /** @enum {string} */
+            status: "current" | "stale" | "missing" | "invalid";
+        };
+        MetricObservation: {
+            blockHash: string | null;
+            blockNumber: string | null;
+            coverage: {
+                scope: string;
+                /** @enum {string} */
+                status: "complete" | "partial" | "unknown";
+                /** Format: date-time */
+                windowEndAt: string | null;
+                /** Format: date-time */
+                windowStartAt: string | null;
+            };
+            /**
+             * Format: date-time
+             * @description Inclusive hard freshness boundary. A derived value expires with its earliest-expiring required input.
+             */
+            expiresAt: string | null;
+            /**
+             * Format: date-time
+             * @description Recorded fetch/publication time. Null when older observations did not record it separately.
+             */
+            fetchedAt: string | null;
+            inputs: {
+                /** Format: date-time */
+                asOf: string | null;
+                name: string;
+                observation: components["schemas"]["MetricObservation"];
+                value: number | string | null;
+            }[];
+            method: string;
+            /** @description Structured computation parameters, including historical quote sampling/oracle times and valuation assumptions when recorded. */
+            parameters: {
+                [key: string]: string | number | boolean | null;
+            };
+            /**
+             * @description A retained current observation may coexist with a failed latest refresh.
+             * @enum {string}
+             */
+            readStatus: "ok" | "partial" | "failed" | "unread";
+            /**
+             * Format: date-time
+             * @description Source moment, usually the pinned block timestamp. Unknown for explorer snapshots.
+             */
+            sourceAt: string | null;
+            /** @description Stable source kind and identity; null when the stored source has no structured identity. */
+            sourceId: string | null;
+            /**
+             * @description Timestamp validity and freshness, separate from read success and coverage.
+             * @enum {string}
+             */
+            status: "current" | "stale" | "missing" | "invalid";
+        };
         Project: {
             buildCount: number;
             /** Format: date-time */
@@ -4111,8 +4335,12 @@ export interface components {
             assetId?: string | null;
             bestPoolId?: string | null;
             burnedRaw?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: string | null;
@@ -4120,23 +4348,35 @@ export interface components {
             chainId: number;
             closeCall?: boolean;
             decimals?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
             };
             dominantAddress?: string | null;
             holders: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
             };
             marketCapUsd: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
@@ -4145,31 +4385,58 @@ export interface components {
             name?: string | null;
             poolCount?: number;
             priceUsd: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
             };
+            /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
+            selection: {
+                /** Format: date-time */
+                expiresAt: string | null;
+                /** @description Versioned bounded selection: issuer listing, otherwise V3 quote holdings at least $10,000, otherwise V4 bounded 1% estimate at least $100. No issuer verification is inferred from economics. */
+                policy: string;
+                /** Format: date-time */
+                selectedAt: string | null;
+                /** @enum {string} */
+                status: "current" | "stale" | "missing" | "invalid";
+            };
             selectionReason: string;
             swaps24h?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
             };
             symbol?: string | null;
             totalSupplyRaw?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: string | null;
             };
             transactions24h?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
@@ -4177,15 +4444,23 @@ export interface components {
             /** @enum {string} */
             trust: "verified" | "listed" | "community" | "lookalike" | "unknown";
             v3QuoteHoldingsUsd?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
             };
             v4OnePercentDepthUsd?: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;
@@ -4193,8 +4468,12 @@ export interface components {
             /** @constant */
             volumeScope: "selected_pool";
             volumeUsd24h: {
-                /** Format: date-time */
+                /**
+                 * Format: date-time
+                 * @description Compatibility observation time. Derived capitalization uses the oldest required input time; inspect observation.inputs for each input.
+                 */
                 asOf: string | null;
+                observation: components["schemas"]["MetricObservation"];
                 reason: string | null;
                 source: string | null;
                 value: number | null;

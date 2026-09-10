@@ -1,3 +1,5 @@
+import type { paths } from "./generated/openapi.ts";
+
 // Status has partially specified inline schemas in the public OpenAPI document.
 // Keep the remaining typed fields aligned with the live contract and its tests.
 
@@ -25,6 +27,17 @@ export interface MetadataBacklog {
   measuredAt: string;
 }
 
+export interface MetricCoverage {
+  eligible: number;
+  current: number;
+  failed: number;
+  unread: number;
+  oldestInputAgeSeconds: number | null;
+  measuredAt: string;
+}
+
+export type SwapIndexer = NonNullable<paths["/status"]["get"]["responses"][200]["content"]["application/json"]["swapIndexer"]>;
+
 export interface JobFreshness {
   job: string;
   cadenceSeconds: number;
@@ -37,6 +50,8 @@ export interface JobFreshness {
   running: boolean;
   checkpoints: CheckpointProgress[];
   metadataBacklog: MetadataBacklog | null;
+  // A failed refresh can retain a current observation, so these counts overlap.
+  metricCoverage: Record<string, MetricCoverage> | null;
 }
 
 export interface FigureFreshness {
@@ -65,6 +80,7 @@ export interface Freshness {
     failing: string[];
   };
   head: { block: string; readAt: string; ageSeconds: number } | null;
+  swapIndexer: SwapIndexer;
   jobs: JobFreshness[];
   figures: FigureFreshness[];
   verdicts: Record<JobVerdict | OverallVerdict | "unread", string>;

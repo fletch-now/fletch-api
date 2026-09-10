@@ -122,9 +122,13 @@ For public Robinscan counts that time is the page fetch; the source does not
 publish its index snapshot time.
 Community dominance records the economic selection rule and same-name alternatives;
 it never changes the token trust verdict.
-Pool stateCurrent requires an observation within ten minutes. Stale, future or
+Pool stateCurrent requires an observation within three minutes. Stale, future or
 unread state suppresses depth, price, FDV and price-change values; stateCheckedAt
-retains the actual observation time. Missing freshness fields mean unknown.
+retains the actual observation time. Token metrics expose observation with sourceId,
+blockNumber, blockHash, sourceAt, fetchedAt, expiresAt, method, inputs, coverage
+and readStatus. Derived values expire with the first required input; supply and
+burn balances expire after five minutes. selection exposes selectedAt, expiresAt
+and policy. Missing freshness fields mean unknown.
 Daily state history is a dated reading, not OHLC, and begins when indexing began.
 
 ## Choosing endpoints
@@ -284,11 +288,13 @@ actual last successful run. A job schedules its next run after the previous run.
 - concentration: 86400 seconds
 - dex-pools: 600 seconds
 - dex-pools-v3: 600 seconds
-- dex-state: 300 seconds
-- priority-universe: 3600 seconds
+- dex-state: 45 seconds
+- priority-universe: 300 seconds
 - priority-holders: 300 seconds
 - dex-tokens: 60 seconds
-- dex-prices: 300 seconds
+- dex-token-discovery: 60 seconds
+- priority-supply: 60 seconds
+- dex-prices: 60 seconds
 - dex-tiers: 3600 seconds
 - dex-swaps: 45 seconds
 - dex-swap-backfill: 60 seconds

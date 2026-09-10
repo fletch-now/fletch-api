@@ -5,10 +5,10 @@
 // costs no bytes, and cursor and stream helpers for the changelog.
 
 import { createRequire } from "node:module";
-import type { paths } from "./generated/openapi.ts";
+import type { paths, components } from "./generated/openapi.ts";
 import type { Freshness } from "./freshness.ts";
 
-export type { paths } from "./generated/openapi.ts";
+export type { paths, components } from "./generated/openapi.ts";
 export type * from "./freshness.ts";
 export { isOverallVerdict, OVERALL_VERDICTS } from "./freshness.ts";
 
@@ -25,6 +25,11 @@ export type GetPath = { [P in keyof paths]: paths[P] extends { get: object } ? P
 type Operation<P extends GetPath> = paths[P] extends { get: infer O } ? O : never;
 export type Query<P extends GetPath> = Operation<P> extends { parameters: { query?: infer Q } } ? Exclude<Q, undefined> : never;
 export type Body<P extends GetPath> = Operation<P> extends { responses: { 200: { content: { "application/json": infer B } } } } ? B : unknown;
+
+export type MetricObservation = components["schemas"]["MetricObservation"];
+export type MetricInput = MetricObservation["inputs"][number];
+export type MarketSelection = components["schemas"]["MarketSelection"];
+export type TokenMarket = components["schemas"]["TokenMarket"];
 
 export type EventsBody = Body<"/chains/{chainId}/events">;
 export type AuthorityEvent = NonNullable<EventsBody["events"]>[number];

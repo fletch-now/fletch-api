@@ -289,3 +289,28 @@ test("token market helpers preserve combined filters, zero threshold and paginat
   assert.equal(url.searchParams.get("sort"), "swaps");
   assert.equal(url.searchParams.get("identity"), "same_name");
 });
+
+test("bounded market reads retain nested source evidence, expiry, selection and failed refreshes", async function observations() {
+  const observation: import("../src/index.ts").MetricObservation = {
+    sourceId: "fletch:derived", blockNumber: null, blockHash: null, sourceAt: "2026-09-10T20:00:00Z", fetchedAt: null,
+    expiresAt: "2026-09-10T20:05:00Z", method: "capitalization", parameters: { estimate: true },
+    inputs: [{ name: "supply", value: "100", asOf: "2026-09-10T20:00:00Z", observation: {
+      sourceId: "rpc:erc20", blockNumber: "123", blockHash: null, sourceAt: "2026-09-10T20:00:00Z", fetchedAt: "2026-09-10T20:00:01Z",
+      expiresAt: "2026-09-10T20:05:00Z", method: "erc20_totalSupply", parameters: {}, inputs: [],
+      coverage: { status: "complete", scope: "token", windowStartAt: null, windowEndAt: null }, status: "current", readStatus: "failed",
+    } }], coverage: { status: "partial", scope: "token", windowStartAt: null, windowEndAt: null }, status: "current", readStatus: "partial",
+  };
+  const selection: import("../src/index.ts").MarketSelection = { selectedAt: null, expiresAt: null, policy: "fixture", status: "missing" };
+  const metricCoverage: import("../src/index.ts").MetricCoverage = {
+    eligible: 1, current: 1, failed: 1, unread: 0, oldestInputAgeSeconds: 20, measuredAt: "2026-09-10T20:00:20Z",
+  };
+  const body = { items: [{ address: "0xfixture", dominantAddress: null, selection, marketCapUsd: { value: null, observation } }], total: 1 };
+  const { fetch: fetchImpl, calls } = fakeFetch(function answer(call) {
+    return jsonResponse(call.url.includes("/status") ? { jobs: [{ metricCoverage: { supply: metricCoverage } }] } : body);
+  });
+  const client = new FletchClient({ fetch: fetchImpl });
+  assert.deepEqual(await client.tokenMarkets(4663, { q: "TSLA", pageSize: 25 }), body);
+  const status = await client.status();
+  assert.deepEqual(status.jobs[0]?.metricCoverage?.supply, metricCoverage);
+  assert.equal(calls.length, 2, "helpers make only the requested reads");
+});
