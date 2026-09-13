@@ -198,8 +198,8 @@ export interface paths {
             cookie?: never;
         };
         /**
-         * Robinhood app catalog with tradability and observation age
-         * @description Public. Includes symbols without a known on-chain contract. Display-only means a price feed without app trading. Inspect per-account tradability, stale and error. Symbols are ticker matches, not contract verification. Follow nextOffset until null. Pages read the current snapshot, which can change between requests. The observer targets 15 seconds; this endpoint reads its stored result.
+         * Robinhood crypto currency-pairs catalog with source scope and observation age
+         * @description Public. Scope is crypto_currency_pairs. Stock Tokens use a separate address-based list. Legacy status not_in_app means only no matching crypto ticker; stock_token assets return not_covered. Includes symbols without a known on-chain contract. Display-only means a price feed without app trading. Inspect per-account tradability, stale and error. Symbols are ticker matches, not contract verification. Follow nextOffset until null. Pages read the current snapshot, which can change between requests. The observer targets 15 seconds; this endpoint reads its stored result.
          */
         get: operations["getAppCatalog"];
         put?: never;
@@ -1801,11 +1801,13 @@ export interface paths {
         };
         /**
          * Recorded name and ticker collisions at different contract addresses, with available holder counts and beacon checks
-         * @description Public. Most held first. A collision describes reused labels; it does not establish intent or issuer identity. `limit` caps rows (default 300, max 1000); `offset` skips that many rows, so `offset=1000&limit=1000` is the second page, and a page shorter than `limit` is the last one. Holder counts are refreshed by the lookalike scan, so the order can shift between pages read across a scan: a consumer copying the whole table dedupes by `address`.
+         * @description Public. Most held first, missing holder counts last, then address and row id. symbol and kind apply the same filters as the Lookalikes page. kind=unverified includes legacy unlisted_stock observations; a shared beacon records a dependency, not issuer origin. total counts the complete filtered set; follow nextOffset until null. A collision describes reused labels; it does not establish intent or issuer identity. `limit` caps rows (default 300, max 1000); `offset` skips that many rows, so `offset=1000&limit=1000` is the second page, and a page shorter than `limit` is the last one. Holder counts are refreshed by the lookalike scan, so the order can shift between pages read across a scan: a consumer copying the whole table dedupes by `address`.
          */
         get: {
             parameters: {
                 query?: {
+                    /** @description Collision category. unlisted_stock is a legacy alias for unverified. */
+                    kind?: "impostor" | "same_ticker" | "unverified" | "unlisted_stock";
                     /** @description Rows per page (default 300) */
                     limit?: number;
                     /** @description Rows to skip before the page (default 0) */
@@ -1829,7 +1831,22 @@ export interface paths {
                     };
                     content: {
                         "application/json": {
-                            lookalikes?: Record<string, unknown>[];
+                            limit?: number;
+                            lookalikes: Record<string, unknown>[];
+                            nextOffset?: number | null;
+                            offset?: number;
+                            total?: number;
+                        };
+                    };
+                };
+                /** @description Invalid query */
+                400: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
                         };
                     };
                 };
@@ -1981,10 +1998,13 @@ export interface paths {
                                             [key: string]: "tradable" | "untradable";
                                         };
                                     }[];
+                                    reason: string;
+                                    /** @constant */
+                                    scope: "crypto_currency_pairs";
                                     source: string;
                                     stale: boolean;
                                     /** @enum {string} */
-                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                    status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                                 };
                                 symbol: string;
                             }[];
@@ -2090,10 +2110,13 @@ export interface paths {
                                             [key: string]: "tradable" | "untradable";
                                         };
                                     }[];
+                                    reason: string;
+                                    /** @constant */
+                                    scope: "crypto_currency_pairs";
                                     source: string;
                                     stale: boolean;
                                     /** @enum {string} */
-                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                    status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                                 };
                                 /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
                                 selection: {
@@ -2110,9 +2133,16 @@ export interface paths {
                                 stockPairings?: {
                                     canonicalAddress: string;
                                     communityAddress: string;
+                                    communityName: string | null;
                                     communitySymbol: string | null;
+                                    createdBlock: string;
+                                    id: string;
                                     /** Format: date-time */
                                     lastSwapAt: string | null;
+                                    metadataAgeSeconds: number | null;
+                                    metadataError: string | null;
+                                    /** @enum {string} */
+                                    metadataStatus: "current" | "stale" | "pending" | "failed";
                                     /** Format: date-time */
                                     observedAt: string | null;
                                     poolId: string;
@@ -2122,6 +2152,31 @@ export interface paths {
                                     stockVerdict: "canonical" | "lookalike" | "unconfirmed";
                                     venue: string;
                                 }[];
+                                stockPairingSummary?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    counterparties: number;
+                                    /** Format: date-time */
+                                    latestSwapAt: string | null;
+                                    observedSwapPools: number;
+                                    pendingCounterparties: number;
+                                    /** @constant */
+                                    ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+                                    resolvedCounterparties: number;
+                                    source: string;
+                                    totalPools: number;
+                                    url: string;
+                                };
+                                stockToken?: {
+                                    address: string;
+                                    ageSeconds: number | null;
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    source: string | null;
+                                    verified: boolean;
+                                    /** Format: date-time */
+                                    verifiedAt: string | null;
+                                };
                                 swaps24h?: {
                                     /**
                                      * Format: date-time
@@ -2456,6 +2511,23 @@ export interface paths {
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
+                            /** @description Durable collision search and metadata backfill coverage. A successful bounded job does not mean every asset has complete coverage. Counts retain their own measuredAt timestamp. */
+                            lookalikes?: {
+                                assets: number;
+                                beaconFailed: number;
+                                beaconPending: number;
+                                completed: number;
+                                failed: number;
+                                /** Format: date-time */
+                                lastObservedAt: string | null;
+                                /** Format: date-time */
+                                localCompletedAt: string | null;
+                                /** Format: date-time */
+                                measuredAt: string;
+                                /** Format: date-time */
+                                oldestCompletedAt: string | null;
+                                pending: number;
+                            } | null;
                             /** @description Catalog ticker candidates, bytecode evidence and unfinished pool coverage. A ticker match does not establish Robinhood app contract identity. */
                             scouting?: {
                                 bytecodeCheckedTickers: number;
@@ -2480,12 +2552,24 @@ export interface paths {
                                 /** Format: date-time */
                                 measuredAt: string;
                                 pendingPoolTokens: number;
+                                /** @enum {string} */
+                                receiptStatus?: "current" | "stale" | "unavailable";
                                 selectedPools: number;
                                 unmatchedSymbols: string[];
                             } | null;
                             summary?: string;
                             /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
+                                /**
+                                 * Format: date-time
+                                 * @description Worker measurement time for the tier counts. Never replaced with the HTTP response time.
+                                 */
+                                catalogMeasuredAt?: string | null;
+                                /**
+                                 * @description Catalog receipt is current for 120 seconds. Missing receipts return an empty tiers array, not measured zero counts. The live tail and selected-pool counts are read separately.
+                                 * @enum {string}
+                                 */
+                                catalogStatus?: "current" | "stale" | "unavailable";
                                 /** Format: date-time */
                                 checkedAt: string;
                                 /** @constant */
@@ -2552,6 +2636,26 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chains/{chainId}/stock-pairings": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Discovered stock/community pools with counterparty metadata and pagination
+         * @description All recorded canonical factory pools for a verified stock contract or a same-ticker lookalike. Filter by stock, canonical stock, or community address. Each pool and stock side has a stable id. Sorted by latest recorded swap, resolved metadata, descending creation block, then pool id. A missing swap is unobserved activity, not zero. Summary counts cover the full filtered set; token market rows contain up to three grouped representatives. Offset pages reflect the current database and can move as swaps arrive.
+         */
+        get: operations["getStockPairings"];
         put?: never;
         post?: never;
         delete?: never;
@@ -2695,6 +2799,23 @@ export interface paths {
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
+                            /** @description Durable collision search and metadata backfill coverage. A successful bounded job does not mean every asset has complete coverage. Counts retain their own measuredAt timestamp. */
+                            lookalikes?: {
+                                assets: number;
+                                beaconFailed: number;
+                                beaconPending: number;
+                                completed: number;
+                                failed: number;
+                                /** Format: date-time */
+                                lastObservedAt: string | null;
+                                /** Format: date-time */
+                                localCompletedAt: string | null;
+                                /** Format: date-time */
+                                measuredAt: string;
+                                /** Format: date-time */
+                                oldestCompletedAt: string | null;
+                                pending: number;
+                            } | null;
                             /** @description Catalog ticker candidates, bytecode evidence and unfinished pool coverage. A ticker match does not establish Robinhood app contract identity. */
                             scouting?: {
                                 bytecodeCheckedTickers: number;
@@ -2719,12 +2840,24 @@ export interface paths {
                                 /** Format: date-time */
                                 measuredAt: string;
                                 pendingPoolTokens: number;
+                                /** @enum {string} */
+                                receiptStatus?: "current" | "stale" | "unavailable";
                                 selectedPools: number;
                                 unmatchedSymbols: string[];
                             } | null;
                             summary?: string;
                             /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
+                                /**
+                                 * Format: date-time
+                                 * @description Worker measurement time for the tier counts. Never replaced with the HTTP response time.
+                                 */
+                                catalogMeasuredAt?: string | null;
+                                /**
+                                 * @description Catalog receipt is current for 120 seconds. Missing receipts return an empty tiers array, not measured zero counts. The live tail and selected-pool counts are read separately.
+                                 * @enum {string}
+                                 */
+                                catalogStatus?: "current" | "stale" | "unavailable";
                                 /** Format: date-time */
                                 checkedAt: string;
                                 /** @constant */
@@ -2949,10 +3082,13 @@ export interface paths {
                                             [key: string]: "tradable" | "untradable";
                                         };
                                     }[];
+                                    reason: string;
+                                    /** @constant */
+                                    scope: "crypto_currency_pairs";
                                     source: string;
                                     stale: boolean;
                                     /** @enum {string} */
-                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                    status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                                 };
                                 /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
                                 selection: {
@@ -2969,9 +3105,16 @@ export interface paths {
                                 stockPairings?: {
                                     canonicalAddress: string;
                                     communityAddress: string;
+                                    communityName: string | null;
                                     communitySymbol: string | null;
+                                    createdBlock: string;
+                                    id: string;
                                     /** Format: date-time */
                                     lastSwapAt: string | null;
+                                    metadataAgeSeconds: number | null;
+                                    metadataError: string | null;
+                                    /** @enum {string} */
+                                    metadataStatus: "current" | "stale" | "pending" | "failed";
                                     /** Format: date-time */
                                     observedAt: string | null;
                                     poolId: string;
@@ -2981,6 +3124,31 @@ export interface paths {
                                     stockVerdict: "canonical" | "lookalike" | "unconfirmed";
                                     venue: string;
                                 }[];
+                                stockPairingSummary?: {
+                                    /** Format: date-time */
+                                    asOf: string | null;
+                                    counterparties: number;
+                                    /** Format: date-time */
+                                    latestSwapAt: string | null;
+                                    observedSwapPools: number;
+                                    pendingCounterparties: number;
+                                    /** @constant */
+                                    ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+                                    resolvedCounterparties: number;
+                                    source: string;
+                                    totalPools: number;
+                                    url: string;
+                                };
+                                stockToken?: {
+                                    address: string;
+                                    ageSeconds: number | null;
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    source: string | null;
+                                    verified: boolean;
+                                    /** Format: date-time */
+                                    verifiedAt: string | null;
+                                };
                                 swaps24h?: {
                                     /**
                                      * Format: date-time
@@ -4437,7 +4605,7 @@ export interface components {
                     };
                 }[];
                 /** @enum {string} */
-                status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                 symbol: string;
             }[];
             limit: number;
@@ -4446,6 +4614,8 @@ export interface components {
             /** Format: date-time */
             observedAt: string | null;
             offset: number;
+            /** @constant */
+            scope: "crypto_currency_pairs";
             source: string;
             stale: boolean;
             total: number;
@@ -4479,10 +4649,13 @@ export interface components {
                     [key: string]: "tradable" | "untradable";
                 };
             }[];
+            reason: string;
+            /** @constant */
+            scope: "crypto_currency_pairs";
             source: string;
             stale: boolean;
             /** @enum {string} */
-            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+            status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
         };
         Asset: {
             address: string;
@@ -4646,9 +4819,16 @@ export interface components {
         StockPairing: {
             canonicalAddress: string;
             communityAddress: string;
+            communityName: string | null;
             communitySymbol: string | null;
+            createdBlock: string;
+            id: string;
             /** Format: date-time */
             lastSwapAt: string | null;
+            metadataAgeSeconds: number | null;
+            metadataError: string | null;
+            /** @enum {string} */
+            metadataStatus: "current" | "stale" | "pending" | "failed";
             /** Format: date-time */
             observedAt: string | null;
             poolId: string;
@@ -4657,6 +4837,76 @@ export interface components {
             /** @enum {string} */
             stockVerdict: "canonical" | "lookalike" | "unconfirmed";
             venue: string;
+        };
+        StockPairingPage: {
+            address: string | null;
+            chainId: number;
+            items: {
+                canonicalAddress: string;
+                communityAddress: string;
+                communityName: string | null;
+                communitySymbol: string | null;
+                createdBlock: string;
+                id: string;
+                /** Format: date-time */
+                lastSwapAt: string | null;
+                metadataAgeSeconds: number | null;
+                metadataError: string | null;
+                /** @enum {string} */
+                metadataStatus: "current" | "stale" | "pending" | "failed";
+                /** Format: date-time */
+                observedAt: string | null;
+                poolId: string;
+                stockAddress: string;
+                stockSymbol: string;
+                /** @enum {string} */
+                stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+                venue: string;
+            }[];
+            limit: number;
+            nextOffset: number | null;
+            offset: number;
+            summary: {
+                /** Format: date-time */
+                asOf: string | null;
+                counterparties: number;
+                /** Format: date-time */
+                latestSwapAt: string | null;
+                observedSwapPools: number;
+                pendingCounterparties: number;
+                /** @constant */
+                ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+                resolvedCounterparties: number;
+                source: string;
+                totalPools: number;
+                url: string;
+            };
+            total: number;
+        };
+        StockPairingSummary: {
+            /** Format: date-time */
+            asOf: string | null;
+            counterparties: number;
+            /** Format: date-time */
+            latestSwapAt: string | null;
+            observedSwapPools: number;
+            pendingCounterparties: number;
+            /** @constant */
+            ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+            resolvedCounterparties: number;
+            source: string;
+            totalPools: number;
+            url: string;
+        };
+        StockTokenMembership: {
+            address: string;
+            ageSeconds: number | null;
+            /** Format: date-time */
+            observedAt: string | null;
+            source: string | null;
+            verified: boolean;
+            /** Format: date-time */
+            verifiedAt: string | null;
         };
         TokenMarket: {
             address: string;
@@ -4758,10 +5008,13 @@ export interface components {
                         [key: string]: "tradable" | "untradable";
                     };
                 }[];
+                reason: string;
+                /** @constant */
+                scope: "crypto_currency_pairs";
                 source: string;
                 stale: boolean;
                 /** @enum {string} */
-                status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
             };
             /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
             selection: {
@@ -4778,9 +5031,16 @@ export interface components {
             stockPairings?: {
                 canonicalAddress: string;
                 communityAddress: string;
+                communityName: string | null;
                 communitySymbol: string | null;
+                createdBlock: string;
+                id: string;
                 /** Format: date-time */
                 lastSwapAt: string | null;
+                metadataAgeSeconds: number | null;
+                metadataError: string | null;
+                /** @enum {string} */
+                metadataStatus: "current" | "stale" | "pending" | "failed";
                 /** Format: date-time */
                 observedAt: string | null;
                 poolId: string;
@@ -4790,6 +5050,31 @@ export interface components {
                 stockVerdict: "canonical" | "lookalike" | "unconfirmed";
                 venue: string;
             }[];
+            stockPairingSummary?: {
+                /** Format: date-time */
+                asOf: string | null;
+                counterparties: number;
+                /** Format: date-time */
+                latestSwapAt: string | null;
+                observedSwapPools: number;
+                pendingCounterparties: number;
+                /** @constant */
+                ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+                resolvedCounterparties: number;
+                source: string;
+                totalPools: number;
+                url: string;
+            };
+            stockToken?: {
+                address: string;
+                ageSeconds: number | null;
+                /** Format: date-time */
+                observedAt: string | null;
+                source: string | null;
+                verified: boolean;
+                /** Format: date-time */
+                verifiedAt: string | null;
+            };
             swaps24h?: {
                 /**
                  * Format: date-time
@@ -5039,7 +5324,7 @@ export interface operations {
                                 };
                             }[];
                             /** @enum {string} */
-                            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                            status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                             symbol: string;
                         }[];
                         limit: number;
@@ -5048,6 +5333,8 @@ export interface operations {
                         /** Format: date-time */
                         observedAt: string | null;
                         offset: number;
+                        /** @constant */
+                        scope: "crypto_currency_pairs";
                         source: string;
                         stale: boolean;
                         total: number;
@@ -5125,7 +5412,7 @@ export interface operations {
                                 };
                             }[];
                             /** @enum {string} */
-                            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                            status: "tradable" | "display_only" | "not_in_app" | "not_covered" | "unavailable";
                             symbol: string;
                         }[];
                         limit: number;
@@ -5134,9 +5421,125 @@ export interface operations {
                         /** Format: date-time */
                         observedAt: string | null;
                         offset: number;
+                        /** @constant */
+                        scope: "crypto_currency_pairs";
                         source: string;
                         stale: boolean;
                         total: number;
+                    };
+                };
+            };
+        };
+    };
+    getStockPairings: {
+        parameters: {
+            query?: {
+                address?: string;
+                limit?: number;
+                offset?: number;
+            };
+            header?: never;
+            path: {
+                chainId: 4663;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded pairings and complete filtered counts */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        address: string | null;
+                        chainId: number;
+                        items: {
+                            canonicalAddress: string;
+                            communityAddress: string;
+                            communityName: string | null;
+                            communitySymbol: string | null;
+                            createdBlock: string;
+                            id: string;
+                            /** Format: date-time */
+                            lastSwapAt: string | null;
+                            metadataAgeSeconds: number | null;
+                            metadataError: string | null;
+                            /** @enum {string} */
+                            metadataStatus: "current" | "stale" | "pending" | "failed";
+                            /** Format: date-time */
+                            observedAt: string | null;
+                            poolId: string;
+                            stockAddress: string;
+                            stockSymbol: string;
+                            /** @enum {string} */
+                            stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+                            venue: string;
+                        }[];
+                        limit: number;
+                        nextOffset: number | null;
+                        offset: number;
+                        summary: {
+                            /** Format: date-time */
+                            asOf: string | null;
+                            counterparties: number;
+                            /** Format: date-time */
+                            latestSwapAt: string | null;
+                            observedSwapPools: number;
+                            pendingCounterparties: number;
+                            /** @constant */
+                            ranking: "latest_recorded_swap_then_resolved_metadata_then_creation_block_then_pool_id";
+                            resolvedCounterparties: number;
+                            source: string;
+                            totalPools: number;
+                            url: string;
+                        };
+                        total: number;
+                    };
+                };
+            };
+            /** @description Invalid query */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Unsupported chain */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Pairing database read unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
                     };
                 };
             };

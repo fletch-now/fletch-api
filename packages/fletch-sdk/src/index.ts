@@ -33,6 +33,9 @@ export type TokenMarket = components["schemas"]["TokenMarket"];
 export type AppCatalogPage = components["schemas"]["AppCatalogPage"];
 export type AppCatalogStatus = components["schemas"]["AppCatalogStatus"];
 export type StockPairing = components["schemas"]["StockPairing"];
+export type StockPairingPage = components["schemas"]["StockPairingPage"];
+export type StockPairingSummary = components["schemas"]["StockPairingSummary"];
+export type StockTokenMembership = components["schemas"]["StockTokenMembership"];
 
 export type EventsBody = Body<"/chains/{chainId}/events">;
 export type AuthorityEvent = NonNullable<EventsBody["events"]>[number];
@@ -281,6 +284,10 @@ export class FletchClient {
 
   async appCatalog(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/app-catalog">): Promise<AppCatalogPage> {
     return (await this.get("/chains/{chainId}/app-catalog", requestOptions({ chainId }, query))).body;
+  }
+
+  async stockPairings(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/stock-pairings">): Promise<StockPairingPage> {
+    return (await this.get("/chains/{chainId}/stock-pairings", requestOptions({ chainId }, query))).body;
   }
 
   async tokenMarkets(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/markets">): Promise<Body<"/chains/{chainId}/markets">> {

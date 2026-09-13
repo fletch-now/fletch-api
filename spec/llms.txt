@@ -101,7 +101,17 @@ record its actual condition. Price feed only means the app displays the asset
 without enabling trades. Per-account tradability remains in each pair. Catalog
 appearance does not verify an on-chain contract or imply endorsement.
 
-Markets rows carry robinhoodApp and stockPairings. Each pairing records its
+Markets rows carry robinhoodApp, stockToken, stockPairings and stockPairingSummary.
+robinhoodApp.scope is crypto_currency_pairs: a ticker match is not contract
+verification. Stock Tokens return not_covered and use stockToken for independent
+address membership and source age. The legacy not_in_app value means only that
+the ticker was absent from the crypto catalog, not other Robinhood products.
+stockPairings contains up to three grouped examples; stockPairingSummary counts
+the complete filtered set and links to /api/v1/chains/4663/stock-pairings?address=0x….
+Follow limit/offset and nextOffset until null to retrieve every pool. Pair IDs
+combine poolId and stockAddress. Ranking is latest recorded swap, resolved metadata,
+creation block, pool id. No observed swap does not mean zero activity.
+Metadata status is current, stale, pending or failed; preserve error and age. Each pairing records its
 stockVerdict: canonical, lookalike or unconfirmed. catalogMatches keeps catalog
 symbols visible even when the selected market table has no row for them.
 
@@ -133,6 +143,14 @@ Raw token amounts and large block-related values may be decimal strings. Keep
 integer precision and apply the token's own decimals. Prices and multipliers are
 numbers. Timestamps are ISO 8601. Read each field's own checkedAt/takenAt/coverage.
 Use addresses and the trust verdict, not ticker spelling, to identify an asset.
+GET /api/v1/chains/4663/lookalikes accepts symbol and kind filters. kind is
+impostor, same_ticker or unverified; legacy unlisted_stock maps to unverified.
+A shared beacon is dependency evidence, not issuer origin. The lookalikes array
+is preserved; total, limit, offset and nextOffset describe the filtered page.
+Default limit is 300, maximum 1000; offset is capped at 1000000. Follow nextOffset
+until null and deduplicate by address if observations change between requests.
+Ordering is recorded holders descending, missing counts last, then address and id.
+
 Verified, listed, lookalike, community and unknown are distinct trust outcomes.
 Community requires readable name, symbol and decimals plus bytecode evidence.
 Lookalike normalization folds case, whitespace, invisible characters, common
@@ -338,6 +356,6 @@ actual last successful run. A job schedules its next run after the previous run.
 - issuer-pages: 3600 seconds
 - feed-history: 1800 seconds
 - second-source: 3600 seconds
-- lookalikes: 21600 seconds
+- lookalikes: 60 seconds
 - supply-snapshot: 86400 seconds
 - state-daily: 3600 seconds

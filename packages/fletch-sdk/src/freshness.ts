@@ -37,6 +37,8 @@ export interface MetricCoverage {
 }
 
 export type SwapIndexer = NonNullable<paths["/status"]["get"]["responses"][200]["content"]["application/json"]["swapIndexer"]>;
+export type ScoutingCoverage = NonNullable<paths["/status"]["get"]["responses"][200]["content"]["application/json"]["scouting"]>;
+export type LookalikeCoverage = NonNullable<paths["/status"]["get"]["responses"][200]["content"]["application/json"]["lookalikes"]>;
 
 export interface JobFreshness {
   job: string;
@@ -81,6 +83,8 @@ export interface Freshness {
   };
   head: { block: string; readAt: string; ageSeconds: number } | null;
   swapIndexer: SwapIndexer;
+  scouting?: ScoutingCoverage | null;
+  lookalikes?: LookalikeCoverage | null;
   jobs: JobFreshness[];
   figures: FigureFreshness[];
   verdicts: Record<JobVerdict | OverallVerdict | "unread", string>;

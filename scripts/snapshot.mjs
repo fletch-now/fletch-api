@@ -79,7 +79,13 @@ async function main() {
       changed += 1;
     }
   }
-  if (changed === 0) {
+  let candidateNote = false;
+  try {
+    candidateNote = (await readFile(join(specDir, "SNAPSHOT.md"), "utf8")).startsWith("# Candidate contract:");
+  } catch (error) {
+    if (error.code !== "ENOENT") throw error;
+  }
+  if (changed === 0 && !candidateNote) {
     console.log("spec/ already matches what is served; nothing written");
     return;
   }

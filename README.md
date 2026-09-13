@@ -49,14 +49,16 @@ Check `source`, `observedAt`, `ageSeconds`, `stale` and `error` before using a s
 Follow `nextOffset` with `offset` until null; `limit` is 1 to 200. Pages read the
 current snapshot, which may change between requests.
 
-Catalog observation targets 15 seconds. Pool discovery and catalog contract
-scouting run each minute in bounded batches. Each value carries its own
-observation age and coverage.
+Crypto-catalog observation targets 15 seconds. Pool discovery, contract scouting
+and lookalike work run in bounded minute-level passes. A successful pass does not
+mean the whole catalog has been searched or every token refreshed; page cursors,
+pending counts and per-record observation times show the remaining coverage.
 `/api/v1/status` exposes pending searches, contract checks and metadata backlogs.
 
-Markets returns `robinhoodApp`, `stockPairings` and `catalogMatches`. A shared
-ticker does not verify a contract. Each pairing records its stock side as
-`canonical`, `lookalike` or `unconfirmed`; economic dominance remains separate.
+Markets returns `robinhoodApp`, separate `stockToken` identity, `stockPairingSummary`,
+at most three grouped `stockPairings` examples and `catalogMatches`. A shared ticker
+does not verify a contract. Each pairing records its stock side as `canonical`,
+`lookalike` or `unconfirmed`; economic dominance remains separate.
 
 Use `/api/v1/chains/4663/events/stream` for SSE. The stream carries all event kinds;
 listen for `listing.added`, `listing.changed` and `listing.removed`. Retain each
@@ -94,3 +96,5 @@ and field timestamps. A live job verdict alone does not establish fresh prices.
 The SDK also exports structured metric observation and selection types. Markets
 can be read one filtered page at a time; inspect each metric's expiry and inputs,
 and each Status job's `metricCoverage`, independently from scheduler health.
+
+Stock/community pools have [complete paginated reads](docs/STOCK-PAIRINGS.md). Crypto-catalog non-coverage and separate verified Stock Token identity are explained in [source scope](docs/APP-CATALOG.md).

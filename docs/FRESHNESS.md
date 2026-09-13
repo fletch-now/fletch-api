@@ -1,5 +1,18 @@
 # Reading /api/v1/status
 
+`lookalikes` reports completed, pending and failed searches at its own `measuredAt`,
+plus the last completed local collision sweep and unread/failed beacon checks.
+A successful bounded worker pass can leave pending searches; persisted errors
+remain visible. `scouting.measuredAt` dates worker-published catalog aggregates. Its
+`receiptStatus` becomes stale after 120 seconds; no receipt means `scouting: null`.
+Swap tier counts retain `catalogMeasuredAt` and `catalogStatus`; an unavailable
+receipt produces an empty `tiers` array, not measured zero counts. Live-tail state
+and selected-pool counts are read separately, and live-tail expiry is recomputed
+when reused. The existing minute-level membership job publishes the durable
+receipts, which survive web restarts. The `swaps` figure counts events in complete current
+24-hour windows for selected canonical pools; its unit and description disclose
+that scope. It is not the total historical event ledger.
+
 `GET /api/v1/status` (alias `GET /api/v1/chains/4663/status`) says whether the registry
 is live, in one read: the daemon's heartbeat, every job against the cadence it runs on,
 the scanners still reading history, and the age of every published figure. It always
@@ -7,8 +20,8 @@ answers 200; the verdict is in the body, so a stale registry is a fact you read,
 error you retry. Cached for ten seconds. The body carries `checkedAt`, so its `ETag`
 changes on every fresh read.
 
-Registry reads need no key and every figure on the site is judged from the same rows,
-so "live" on a page means what this route says.
+Registry reads need no key. This route reports scheduler health and measured
+coverage; each page metric also retains its own source time, expiry and read status.
 
 ## The body
 
@@ -83,33 +96,43 @@ entry gives `name`, `block` (the checkpoint), `head` (the chain head when read),
 `blocksPerHour` and `hoursLeft` until the scanner reaches head, both null when there
 are not enough samples yet. Jobs with a checkpoint: `control-plane`, `supply-events`
 (two rows, `supply-mint` and `supply-burn`), `multiplier-events`, `transfer-ledger`,
-`dex-pools`, `dex-pools-v3`, `dex-swaps`, `bridge-flows`. Names carry a `:4663` suffix
+`dex-pools`, `dex-pools-v3`, `dex-swaps`, `stock-pair-history` and `bridge-flows`.
+Names carry a `:4663` suffix
 for the chain.
 
 ### Cadences
 
-Nominal cadences observed on 8 September 2026. Always use the response's current `cadenceSeconds`; jobs schedule their next run after completion, so a one-minute cadence plus 45 seconds of work is roughly 105 seconds between starts.
+Nominal cadences in the 14 September 2026 candidate. Always use the response's current `cadenceSeconds`; jobs schedule their next run after completion, so a one-minute cadence plus 45 seconds of work is roughly 105 seconds between starts.
 
 | Job | Every | Reads |
 |---|---|---|
+| `app-catalog` | 15 s | public crypto currency-pairs catalog |
+| `explorer-scouting` | 1 min | bounded contract search pages and bytecode checks |
+| `stock-pair-history` | 1 min | bounded historical stock/community pool discovery |
+| `priority-universe` | 1 min | selected token/pool membership and measured catalog receipts |
+| `priority-holders` | 1 min | bounded holder observations |
+| `priority-supply` | 1 min | bounded supply and burn observations |
+| `dex-token-discovery` | 1 min | bounded due contract metadata |
 | `control-plane` | 20 s | the AccessControlsRegistry's events: pauses, blocklist, roles, upgrades |
 | `authority-match` | 10 s | new authority events, fanned out to watchers |
 | `chain-health` | 1 min | head block, block time, base fee, batches, status page |
 | `feeds` | 1 min | every Chainlink feed's latest round and staleness |
 | `supply-events` | 2 min | mints and burns |
 | `transfer-ledger` | 1 min | every transfer, into per-holder balances |
-| `dex-swaps` | 1 min | swaps on the pools it knows |
+| `dex-swaps` | 45 s | live swap tail |
+| `dex-swap-backfill` | 1 min | bounded older swap windows |
+| `market-refresh` | 15 s | selected-pool rolling metrics |
 | `bridge-flows` | 2 min | deposits and withdrawals on the token bridge |
 | `multiplier-events` | 5 min | multiplier changes and schedules |
 | `token-state` | 5 min | each token's multiplier, pauses and supply, from its contract |
 | `api-prices` | 5 min | Robinhood's own bid, ask and halt flag |
 | `dex-tokens` | 1 min | bounded due metadata, preserving per-token read times |
-| `dex-prices` | 5 min | sampled pool price history |
+| `dex-prices` | 1 min | selected-pool price samples |
 | `dex-tiers` | 1 h | pool activity tiers |
 | `new-pool-match` | 1 min | new-pool watcher matching |
-| `dex-state` | 10 min | each pool's price, depth and liquidity |
-| `dex-pools` | 10 min | new Uniswap v4 pools |
-| `dex-pools-v3` | 10 min | new Uniswap v3 pools |
+| `dex-state` | 45 s | bounded selected-pool price, depth and liquidity reads |
+| `dex-pools` | 1 min | bounded new Uniswap v4 pool windows |
+| `dex-pools-v3` | 1 min | bounded new Uniswap v3 pool windows |
 | `bridge-escrow` | 30 min | L1 escrow against L2 supply for bridged assets |
 | `feed-history` | 30 min | Chainlink round history |
 | `corporate-actions` | 1 h | corporate actions from the issuer's API |
@@ -117,10 +140,10 @@ Nominal cadences observed on 8 September 2026. Always use the response's current
 | `issuer-pages` | 1 h | the issuer's watched pages |
 | `second-source` | 1 h | The chain explorer's holders, transfers and supply per token |
 | `state-daily` | 1 h | the current UTC day's row of every per-asset figure |
-| `canonical` | 6 h | the beacon proof for every token |
+| `canonical` | 6 h | beacon dependency and code observations for listed Stock Tokens |
 | `bridged` | 6 h | the GatewayRouter proof for bridged assets |
 | `issuer-docs` | 6 h | the PDFs on the issuer's legal hub |
-| `lookalikes` | 6 h | ERC-20s borrowing a listed ticker or name |
+| `lookalikes` | 1 min | bounded ticker/name search pages, local collision slices and beacon checks; complete searches revisited after 6 h |
 | `concentration` | 24 h | top-holder shares and float, from the ledger |
 | `supply-snapshot` | 24 h | the daily supply reconciliation |
 
@@ -207,12 +230,20 @@ indexed progress and complete/valued priority-pool coverage.
 
 ## Catalog and scouting
 
+The separate Stock Token list sync targets 15 minutes; `stockToken.observedAt`
+dates that source observation. The `canonical` job checks listed tokens’ beacon
+dependencies and code on a six-hour cadence. That contract check is separate from
+list membership, crypto availability and token price freshness; keep
+`observedAt`, `verifiedAt` and per-metric timestamps distinct.
+
 App catalog observation targets 15 seconds and becomes stale after 60 seconds.
 Inspect `source`, `observedAt`, `ageSeconds`, `stale` and `error` on catalog reads.
 `scouting.explorer` reports completed and due searches, discovered candidate
 contracts, pending contract checks, last search time and provider response age.
 These counts describe coverage at `measuredAt`; they do not verify token identity.
-Contract searches retain page cursors and resume each minute. Completed searches
-are revisited after six hours, while changed catalog entries become due earlier.
+Contract searches retain page cursors and resume in minute-level passes. This is
+a work cadence, not a promise to refresh every catalog entry each minute. Completed
+searches are revisited after six hours, while changed catalog entries become due
+earlier. Read completed/pending/failed counts alongside each measurement time.
 Holder work runs each minute in bounded batches; each holder reading keeps its
 fetch time and explicitly unknown source index time where unpublished.

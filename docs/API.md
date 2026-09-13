@@ -269,12 +269,12 @@ a key or a session uses its own budget.
 | `GET /api/v1/chains/4663/assets/{symbol}/history?from=&to=&days=&at=&fields=` | one row per UTC day of every per-asset number the registry publishes: multiplier, pause and halt flags, feed price and staleness, bid and ask, divergence, DEX price, premium and liquidity, supply, explorer holders, ledger holders and lookalike count. Default the last 90 days; `at=YYYY-MM-DD` returns that one day; `fields` narrows each row (an unknown key is a 400, as is a malformed `from`, `to` or `days`). `coverage` says how many days are on record and the first of them — there is nothing before the day the daily snapshot began. Each row is one reading taken at `takenAt`, the last of that day, not an open, close or average; the current day's row is rewritten each hour. A null is a figure that was not read that day, never a zero, and `stateCheckedAt`/`feedCheckedAt`/`apiCheckedAt`/`dexCheckedAt`/`blockscoutCheckedAt` say when each group of figures was last read. Rows are flat versions of the live `state` block: `feedPrice`/`feedStale` are `state.feed.price`/`.stale`, `bid`/`ask`/`tradingHalt` are `state.quote.bid`/`.ask`/`.tradingHalt`, `dexPriceUsd`/`dexPremiumPct`/`dexLiquidity` are `state.dex.priceUsd`/`.premiumPct`/`.liquidity`, `blockscoutHolders` is `state.secondSource.holders`, `multiplier` is `state.multiplier` |
 | `GET /api/v1/chains/4663/assets/{symbol}/holders?limit=` | holders largest first with share of supply, holder count, the latest concentration reading, and ledger progress. `sits` is always one of `float`, `pools`, `issuer`, `bridge`, `contracts`, `unknown` and names the concentration share the address's balance counts towards; `unknown` means the code probe has not checked this address yet. `label` and `labelKind` (`pool_manager`, `dex_pool`, `issuer`, `bridge_gateway`, `locker`, `contract`, `exchange`, `eoa`) are null for an address the registry has nothing to say about. `rawBalance` is in base units; divide by 10^`decimals`. `sharePct` is that balance over `totalSupplyRaw`, read live, while the concentration shares are over the sum of every positive balance the ledger held at `concentration.asOfBlock`, so the two can differ slightly while the ledger trails the chain. `concentration` carries top 1, top 10, Gini and the six shares that say where the supply sits — `floatPct` (ordinary wallets), `poolsPct`, `issuerPct`, `bridgePct`, `contractsPct`, `unknownPct` — which add to 100. `unknownPct` is the share held by addresses the code probe has not checked: it checks every holder above a ten-thousandth of a token's supply, so a tail of small holdings stays there permanently and `floatPct` is always a floor. `issuerPct` is the share of every wallet labelled `issuer`, written only for Stock Tokens, whose mints are the issuer creating inventory; `issuerAddress` is this asset's largest mint recipient whatever the asset type. `concentration.day` is the UTC day of the reading, `takenAt` when the job wrote it, `asOfBlock` the ledger block it was computed at, and `concentration.holders` the address count at that moment, while the top-level `holderCount` is read live and can differ. The job runs every 24 h, and `concentration` is null until the transfer ledger reaches the chain head, because the daily job that writes it does not run before then |
 | `GET /api/v1/chains/4663/assets/{symbol}/activity?days=` | one row per UTC day: transfers, volume, mints, burns, transfers settled against USDG in the same transaction, transfers outside US market hours |
-| `GET /api/v1/chains/4663/assets/{symbol}/pools` | pools trading the asset on every DEX the registry reads, deepest first by `depthUsd`: `venue` (`uniswap_v4` or `uniswap_v3`), price in quote and USD, depth, liquidity, fee, hooks, swaps and volume. `depthUsd` is how many dollars of the quote token it takes to move the pool's price by 1%: a ceiling, since a move that leaves the position's range runs out of liquidity first, and not the pool's token balance. `liquidity` is the pool's in-range Uniswap liquidity L in raw units, not a dollar figure, and is comparable only between pools of the same pair (its scale follows the two tokens' decimals) — `depthUsd`, `volumeUsd24h` and `priceUsd` are the dollar figures. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it and are null for a pool discovered inside that window, whose earlier swaps the scan never read. A v4 pool is an id inside the one PoolManager and its `poolAddress` is null; a v3 pool is a contract and carries its address. A pool is recorded when one side is this asset and the other is a listed quote (USDG, WETH or another Stock Token). `best` names the pool behind `state.dex` — the deepest pool in dollars of any venue — with its venue and depth. `discovery` gives each venue's scan position: while `readingHistory` is true, a pool created in blocks the scan has not reached is not listed yet, and while `scanned` is false the venue has not been read at all |
+| `GET /api/v1/chains/4663/assets/{symbol}/pools` | pools trading the asset on every DEX the registry reads, deepest first by `depthUsd`: `venue` (`uniswap_v4` or `uniswap_v3`), price in quote and USD, depth, liquidity, fee, hooks, swaps and volume. `depthUsd` uses observed quote-side holdings for v3 and a bounded quote estimate for a 1% price move for v4; these are different measures, and v4 per-pool reserves are unavailable. `liquidity` is the pool's in-range Uniswap liquidity L in raw units, not a dollar figure, and is comparable only between pools of the same pair (its scale follows the two tokens' decimals) — `depthUsd`, `volumeUsd24h` and `priceUsd` are the dollar figures. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it and are null for a pool discovered inside that window, whose earlier swaps the scan never read. A v4 pool is an id inside the one PoolManager and its `poolAddress` is null; a v3 pool is a contract and carries its address. A pool is recorded when one side is this asset and the other is a listed quote (USDG, WETH or another Stock Token). `best` names the pool behind `state.dex` — the deepest pool in dollars of any venue — with its venue and depth. `discovery` gives each venue's scan position: while `readingHistory` is true, a pool created in blocks the scan has not reached is not listed yet, and while `scanned` is false the venue has not been read at all |
 | `GET /api/v1/chains/4663/dex` | what each DEX venue contributes chain-wide, one row per venue read whether or not it has a pool yet, so `venues` and `discovery` name the same set: pools trading a listed asset, how many carry a dollar price, `depthUsd` (the dollars it takes to move each priced pool's price 1%, added up), swaps and volume, and `assetsPricedHere`, the assets whose deepest pool in dollars sits on that venue. `swaps24h` and `volumeUsd24h` cover the current UTC day and the one before it — swaps are tallied per UTC day, so the window is between 24 and 48 hours, not a rolling day — and a swap near midnight is attributed from the last block of the scan window that held it, so it can land on the neighbouring day. `checkedAt` is when the state read last priced a pool on that venue, `headAt` inside `discovery` when the chain head there was read. `discovery` carries each venue's scan position against that head; while `readingHistory` is true the counts are a floor, and while `scanned` is false the venue has not been read at all. The Pons launchpad creates its pools on the Uniswap v3 factory, so they are counted as `uniswap_v3` |
 | `GET /api/v1/chains/4663/bridge?symbol=&limit=` | the token bridge: each bridged asset's L1 escrow against L2 supply (`inFlightRaw` is the gap), recent deposits and withdrawals seen on L2, and withdrawals past their seven-day window |
 | `GET /api/v1/chains/4663/status` (alias `GET /api/v1/status`) | whether the registry is live: daemon heartbeat, every job against its cadence with a verdict, the scanners still reading history with blocks-per-hour and hours left, and the age of every published figure. Always 200; the verdict is in the body |
 | `GET /api/v1/chains/4663/issuer?kind=` | the issuer's paperwork: every PDF the legal hub lists with ETag, Last-Modified and the token it maps to; the watched pages and when their text changed |
-| `GET /api/v1/chains/4663/lookalikes?symbol=` | every ERC-20 borrowing a listed ticker or exact name at another address: holders, `kind` (`impostor` when it copies the listed name or calls itself Robinhood, `same_ticker` when it only shares the ticker, `unlisted_stock` when its beacon is the issuer's registry, or `unverified` for a second contract on a bridged coin's ticker, since the Arbitrum gateway is one bridge among several), `exactName`, `beacon` |
+| `GET /api/v1/chains/4663/lookalikes?symbol=NVDA&kind=unverified&limit=25&offset=0` | ERC-20 contracts sharing a listed ticker or exact name. Filter by symbol and `kind` (`impostor`, `same_ticker`, `unverified`); legacy `unlisted_stock` normalizes to `unverified`. A beacon is dependency evidence and never establishes issuer deployment. Response preserves `lookalikes` and includes `total`, `limit`, `offset`, `nextOffset`; follow the next offset for all matching rows. |
 | `GET /api/v1/chains/4663/events/stream` | the changelog as Server-Sent Events; `Last-Event-ID` or `?since=` resumes without gaps |
 
 `health.finality` carries the latest assertion Ethereum has confirmed and its age in
@@ -284,8 +284,9 @@ may change it.
 
 `state.dex` on every asset is the deepest pool in dollars of any venue read (Uniswap v4 or v3): `venue`,
 `priceUsd`, `depthUsd`, `liquidity` and `premiumPct` against the Chainlink feed (which already includes
-the multiplier). `depthUsd` is how many dollars of the quote token move that pool's price by 1% and is what
-the deepest pool is chosen by — a ceiling, and not the pool's token balance; `liquidity` is Uniswap's raw
+the multiplier). `depthUsd` uses v3 quote-side holdings or a v4 bounded estimate
+for a 1% price move. Preserve the venue and measure when comparing pools;
+`liquidity` is Uniswap's raw
 in-range L, which compares two pools only when they hold the same pair. `poolId` is a 32-byte pool id when that pool is on Uniswap v4 and a 20-byte pool
 address when it is on Uniswap v3; `/assets/{symbol}/pools` names the venue of every pool, that one included.
 
@@ -312,11 +313,12 @@ Prices and multipliers are numbers. Timestamps are ISO 8601. Fields are added, n
 renamed.
 
 
-## Deployed registry additions, 8 September 2026
+## Token and pool reads
 
 `GET /api/v1/tokens/{address}` resolves one exact mainnet EVM address with trust and
-provenance. Missing or older-than-five-minute discovered metadata can trigger a
-bounded contract probe; unread fields remain null. A symbol match never substitutes
+provenance and the same `reading` shown on the token page. The request can enqueue
+bounded background refresh work; the response uses recorded observations and
+unread fields remain null. A symbol match never substitutes
 for address identity. Listed, confirmed, community, lookalike and unknown outcomes
 carry different evidence; community is not an endorsement.
 
@@ -325,15 +327,16 @@ The default sort is `volume`, with depth and swap activity as fallback signals;
 `traction` remains an alias. Filters include `kind`, `tier`, `venue` and `q`; `limit`
 is at most 500 and `offset` pages explicitly. Do not load every pool into model
 context. Asset-pool and search responses carry `stateCurrent`: only observations
-within ten minutes qualify, and stale/unread/future states suppress current prices,
+within three minutes qualify, and stale/unread/future states suppress current prices,
 depth, valuations and changes while retaining `stateCheckedAt`. Prices also need
 suitable quote/depth evidence. Preserve nulls. Consult [FRESHNESS.md](FRESHNESS.md)
 for metadata backlog and why on-time jobs do not establish fresh figures.
 
-The deployed legacy swap fields may describe the current UTC day and the day before
-it. They are not exact rolling 24-hour metrics. Do not infer historical USD volume
-from a current price. New exact event-ledger/discovery work in the private source
-is not part of this published acceptance.
+Token Markets metrics describe rolling 24-hour observations for the selected pool
+and require complete indexed coverage. Inspect each metric’s `observation`, source
+inputs and expiry. Legacy fields on other responses can have a different stated
+window; do not treat them as interchangeable or infer historical USD volume from
+a current price.
 
 ## App status, stock pairings and continuous discovery
 
@@ -341,5 +344,15 @@ is not part of this published acceptance.
 `offset`; follow `nextOffset` until null. The response retains source, observation
 age, stale/error state and per-account trading availability. Symbols without
 known contracts remain present. [Catalog examples](APP-CATALOG.md) show the market
-lookup and listing-event stream. Markets adds `robinhoodApp`, `stockPairings` and
-`catalogMatches`; stock-side verdicts and economic dominance answer separate questions.
+lookup and listing-event stream. The source scope is `crypto_currency_pairs`;
+Stock Tokens return `not_covered`, while legacy `not_in_app` means absent from
+this crypto source only. Markets includes separate `stockToken` identity,
+`robinhoodApp`, `stockPairingSummary`, at most three grouped `stockPairings` examples
+and `catalogMatches`; stock-side identity and economic dominance answer separate questions.
+
+`GET /api/v1/chains/4663/stock-pairings` exposes every discovered stock/community
+pool with optional `address`, `limit` (1–100) and `offset`. Follow `nextOffset` until
+null; deduplicate stable `id` values if the live ordering changes between reads.
+`total` counts stock-side rows and `summary.totalPools` counts distinct pools.
+Preserve metadata status/age/errors and null swap times. See [complete pairing
+examples](STOCK-PAIRINGS.md); discovery alone does not establish trading activity.

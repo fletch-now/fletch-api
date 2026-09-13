@@ -128,3 +128,13 @@ Use `catalog.nextOffset` for the next page. Each pair retains per-account tradin
 availability. Catalog status is separate from on-chain trust. The SDK exports
 `AppCatalogPage`, `AppCatalogStatus` and `StockPairing` from the live schema snapshot.
 Read [the catalog guide](../../docs/APP-CATALOG.md) for SSE and watcher delivery.
+
+### Stock and community pools
+
+`client.stockPairings(4663, { address, limit: 50, offset: 0 })` returns a typed
+`StockPairingPage`. Follow `nextOffset` until null; token responses include only
+three grouped examples. See [pagination and source semantics](../../docs/STOCK-PAIRINGS.md).
+`robinhoodApp.scope` is `crypto_currency_pairs`: `not_covered` applies to Stock
+Tokens, while legacy `not_in_app` means absent from this crypto source only.
+Inspect `stockToken` for separate list membership and its own verification time.
+`client.status()` exposes measured `lookalikes` and `scouting` coverage.

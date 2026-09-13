@@ -33,6 +33,37 @@ test("builds the URL from path and query parameters", function run() {
   }, /symbol/);
 });
 
+test("stock pairing pages retain complete counts, pending metadata and source scope", async () => {
+  const address = "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec";
+  const body = { chainId: 4663, address, items: [{ id: `pool:${address}`, communitySymbol: null,
+    metadataStatus: "pending", lastSwapAt: null }], total: 101, limit: 50, offset: 50, nextOffset: 100,
+    summary: { totalPools: 101, pendingCounterparties: 91, asOf: "2026-09-14T00:00:00Z" } };
+  const fake = fakeFetch(() => jsonResponse(body));
+  const client = new FletchClient({ fetch: fake.fetch });
+  assert.deepEqual(await client.stockPairings(4663, { address, limit: 50, offset: 50 }), body);
+  const url = new URL(fake.calls[0]!.url);
+  assert.equal(url.pathname, "/api/v1/chains/4663/stock-pairings");
+  assert.equal(url.searchParams.get("address"), address);
+  assert.equal(url.searchParams.get("offset"), "50");
+  assert.equal(url.searchParams.get("limit"), "50");
+  const token = { robinhoodApp: { status: "not_covered", scope: "crypto_currency_pairs", reason: "Stock Tokens use a separate list" },
+    stockToken: { verified: true, address, observedAt: "2026-09-13T00:00:00Z" } };
+  const scoped = fakeFetch(() => jsonResponse({ items: [token] }));
+  const market = await new FletchClient({ fetch: scoped.fetch }).tokenMarkets(4663, { q: "NVDA" });
+  assert.deepEqual(market.items?.[0], token, "crypto non-coverage must coexist with verified stock identity");
+});
+
+test("lookalike reads preserve collision filters and complete pagination metadata", async () => {
+  const body = { lookalikes: [{ address: `0x${"1".repeat(40)}`, kind: "unverified" }], total: 51, limit: 25, offset: 25, nextOffset: 50 };
+  const fake = fakeFetch(() => jsonResponse(body));
+  const page = await new FletchClient({ fetch: fake.fetch }).lookalikes(4663, { symbol: "NVDA", kind: "unverified", limit: 25, offset: 25 });
+  assert.deepEqual(page, body);
+  assert.equal(page.nextOffset, 50);
+  const url = new URL(fake.calls[0]!.url);
+  assert.equal(url.searchParams.get("kind"), "unverified");
+  assert.equal(url.searchParams.get("offset"), "25");
+});
+
 test("sends the key as a bearer token and refuses to send it over http", async function run() {
   const { fetch: fetchImpl, calls } = fakeFetch(function answer() {
     return jsonResponse({ chains: [] });
