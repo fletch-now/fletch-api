@@ -229,8 +229,18 @@ export interface paths {
                      * @example lookalikes,feedRounds,concentration
                      */
                     fields?: string;
+                    /** @description Opt into pagination, default 50 when offset is supplied. Omit both limit and offset to retain the complete collection. */
+                    limit?: number;
+                    /** @description Rows to skip after all filters and sorting, default 0 */
+                    offset?: number;
+                    /** @description Text and state default ascending; identity, numeric values and first-listed dates default descending. Missing values are last in either direction; equal values use contract address ascending. */
+                    order?: "asc" | "desc";
                     /** @description Symbol or name substring */
                     q?: string;
+                    /** @description Sort the entire filtered collection before pagination. Identity uses verified/listed metadata agreement; state uses the displayed state label. Without browse parameters the legacy registry ordering is preserved. */
+                    sort?: "symbol" | "name" | "type" | "address" | "verified" | "multiplier" | "price" | "lookalikes" | "state" | "newest" | "holders" | "float";
+                    /** @description Filter recorded authority state */
+                    state?: "all" | "feed" | "stale" | "paused" | "halted" | "pending" | "residual" | "divergent" | "lookalikes";
                     /**
                      * @description Comma-separated exact tickers, up to 200; any past that are ignored
                      * @example TSLA,AAPL
@@ -238,6 +248,10 @@ export interface paths {
                     symbols?: string;
                     /** @description Filter the Robinhood listing collection by its shared trust verdict. Community tokens are resolved by /tokens/{address} and listed under /dex/pools; they are not added to Robinhood's registry. */
                     trust?: "verified" | "listed" | "lookalike" | "community" | "unknown";
+                    /** @description Listing asset category */
+                    type?: "all" | "stock_token" | "stablecoin" | "wrapped_native" | "bridged";
+                    /** @description 1 requires the contract symbol and decimals to match the listing with a verification receipt */
+                    verified?: "0" | "1";
                 };
                 header?: never;
                 path: {
@@ -333,10 +347,16 @@ export interface paths {
                             })[];
                             /** @description The extra blocks a caller may request */
                             fields?: string[];
+                            limit?: number;
+                            /** @description Next offset, or null at the end of the filtered collection */
+                            nextOffset?: number | null;
+                            offset?: number;
+                            /** @description Full matching count when pagination is requested */
+                            total?: number;
                         };
                     };
                 };
-                /** @description fields= was set on more than 50 assets; narrow with symbols= */
+                /** @description Invalid or repeated query parameter, or fields= was set on more than 50 assets */
                 400: {
                     headers: {
                         [name: string]: unknown;
@@ -1891,7 +1911,7 @@ export interface paths {
         };
         /**
          * Priority tokens, one contract per row, ordered by observed selected-pool volume
-         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries structured observation provenance, computation inputs, coverage, source/fetch times and expiry, alongside compatibility source/asOf/reason fields. Pool state expires after three minutes, changing supply and burn balances after five minutes, and selected-pool swap windows after two minutes. Capitalization expires with its earliest-expiring required input. Missing legacy provenance remains null. Selection time and its fifteen-minute policy expiry are explicit; stale selection withholds dominance. Volume covers the selected pool only. Missing volume sorts last with a stable name/address tie-break. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
+         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries structured observation provenance, computation inputs, coverage, source/fetch times and expiry, alongside compatibility source/asOf/reason fields. Pool state expires after three minutes, changing supply and burn balances after five minutes, and selected-pool swap windows after two minutes. Capitalization expires with its earliest-expiring required input. Missing legacy provenance remains null. Selection time and its fifteen-minute policy expiry are explicit; stale selection withholds dominance. Volume covers the selected pool only. All numeric sorts support order=asc or desc, always with unavailable values last and stable contract-address ties. Name sorts ascending when order is omitted. Raw observations can be shared for ten seconds, while ages, expiry and filtering are recomputed per request; source timestamps never become response timestamps. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
          */
         get: {
             parameters: {
@@ -1908,11 +1928,13 @@ export interface paths {
                     kind?: "all" | "listed" | "community";
                     /** @description Inclusive selected-pool USD volume threshold. Requires a complete current valued window. */
                     minVolumeUsd?: number;
+                    /** @description desc: Descending values; unavailable readings remain last. Numeric sorts default to descending. asc: Ascending values; unavailable readings remain last. Name sorting defaults to ascending when order is omitted. */
+                    order?: "desc" | "asc";
                     page?: number;
                     pageSize?: 25 | 50;
                     q?: string;
-                    /** @description volume: Selected-pool USD volume, highest first. swaps: Selected-pool swap events, highest first. market_cap: Outstanding supply estimate times current price, highest first. v3_depth: Observed quote-side holdings in dollars, highest first. v4_depth: Bounded quote input for a 1% move, highest first. name: Alphabetical name, then contract address. */
-                    sort?: "volume" | "swaps" | "market_cap" | "v3_depth" | "v4_depth" | "name";
+                    /** @description price: Current selected-pool price in USD. pools: Recorded canonical pool count. volume: Selected-pool USD volume, highest first. swaps: Selected-pool swap events, highest first. market_cap: Outstanding supply estimate times current price, highest first. v3_depth: Observed quote-side holdings in dollars, highest first. v4_depth: Bounded quote input for a 1% move, highest first. name: Alphabetical name, then contract address. */
+                    sort?: "price" | "pools" | "volume" | "swaps" | "market_cap" | "v3_depth" | "v4_depth" | "name";
                     /** @description all: Keep every recorded identity verdict. verified: Issuer listing and matching contract checks. listed: Issuer listing with checks still incomplete. community: Resolved metadata with no recorded issuer-name collision. lookalike: Name or symbol collides with a verified asset. unknown: Identity calls have not resolved this contract. */
                     trust?: "all" | "verified" | "listed" | "community" | "lookalike" | "unknown";
                 };
@@ -2250,6 +2272,8 @@ export interface paths {
                                 };
                             }[];
                             note?: string;
+                            /** @enum {string} */
+                            order?: "asc" | "desc";
                             page: number;
                             pageSize: number;
                             scope?: string;
@@ -2371,6 +2395,15 @@ export interface paths {
                                     }[];
                                 };
                                 kind: {
+                                    default: string;
+                                    label: string;
+                                    options: {
+                                        description: string;
+                                        label: string;
+                                        value: string;
+                                    }[];
+                                };
+                                order: {
                                     default: string;
                                     label: string;
                                     options: {

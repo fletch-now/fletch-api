@@ -138,3 +138,26 @@ three grouped examples. See [pagination and source semantics](../../docs/STOCK-P
 Tokens, while legacy `not_in_app` means absent from this crypto source only.
 Inspect `stockToken` for separate list membership and its own verification time.
 `client.status()` exposes measured `lookalikes` and `scouting` coverage.
+
+
+## Sorting and bounded reads
+
+Markets accepts `sort=price|volume|market_cap|pools` and `order=asc|desc`, alongside
+its existing sorts. Sorting covers every matching token before pagination;
+unavailable numeric values remain last in either direction and equal values use
+contract address ascending. Numeric sorts default descending; `sort=name`
+defaults ascending when `order` is omitted.
+
+```ts
+await client.tokenMarkets(4663, { sort: "price", order: "asc", page: 1, pageSize: 25 });
+await client.assets(4663, { type: "stock_token", verified: "1", sort: "price", order: "desc", limit: 25, offset: 0 });
+```
+
+Asset reads support `type`, `verified`, `state`, `sort` and `order`. Supplying
+`limit` (1–50) or `offset` enables pagination with `total` and `nextOffset`; omit
+both to preserve the complete collection. Follow `nextOffset` until null.
+
+Markets shares raw observations for at most ten seconds across nearby requests.
+Each response recomputes metric expiry, source ages, filters and ordering. Pairing
+summary `asOf` retains its actual measurement time; neither navigation nor sorting
+refreshes the source data. Requests that fail are not retained in this cache.

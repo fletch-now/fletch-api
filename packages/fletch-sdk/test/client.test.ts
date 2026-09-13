@@ -311,13 +311,14 @@ test("token market helpers preserve combined filters, zero threshold and paginat
   const client = new FletchClient({ fetch: fetchImpl });
   await client.marketFilters();
   assert.equal(new URL(calls[0]!.url).pathname, "/api/v1/chains/4663/markets/filters");
-  await client.tokenMarkets(4663, { kind: "community", trust: "community", sort: "swaps", activity: "traded", data: "volume", depth: "v3_10k", identity: "same_name", minVolumeUsd: 0, page: 2, pageSize: 25, q: "A&B" });
+  await client.tokenMarkets(4663, { kind: "community", trust: "community", sort: "price", order: "asc", activity: "traded", data: "volume", depth: "v3_10k", identity: "same_name", minVolumeUsd: 0, page: 2, pageSize: 25, q: "A&B" });
   const url = new URL(calls[1]!.url);
   assert.equal(url.pathname, "/api/v1/chains/4663/markets");
   assert.equal(url.searchParams.get("minVolumeUsd"), "0");
   assert.equal(url.searchParams.get("q"), "A&B");
   assert.equal(url.searchParams.get("page"), "2");
-  assert.equal(url.searchParams.get("sort"), "swaps");
+  assert.equal(url.searchParams.get("sort"), "price");
+  assert.equal(url.searchParams.get("order"), "asc");
   assert.equal(url.searchParams.get("identity"), "same_name");
 });
 
@@ -355,4 +356,18 @@ test("app catalog keeps display-only status and source failures through a typed 
   assert.equal(result.items[0]?.status, "display_only");
   assert.equal(result.stale, true);
   assert.equal(new URL(fake.calls[0]!.url).searchParams.get("status"), "display_only");
+});
+
+
+test("asset browse preserves global sort, filters and optional page metadata", async () => {
+  const calls: string[] = [];
+  const client = new FletchClient({ baseUrl: "https://example.test", fetch: async (input) => {
+    calls.push(String(input)); return jsonResponse({assets:[],total:60,limit:25,offset:25,nextOffset:50});
+  } });
+  const page=await client.assets(4663,{sort:"price",order:"asc",type:"stock_token",verified:"1",state:"feed",limit:25,offset:25});
+  const url=new URL(calls[0]!);
+  assert.equal(url.searchParams.get("order"),"asc");
+  assert.equal(url.searchParams.get("verified"),"1");
+  assert.equal(url.searchParams.get("offset"),"25");
+  assert.equal(page.total,60);assert.equal(page.nextOffset,50);
 });

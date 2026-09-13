@@ -356,3 +356,26 @@ null; deduplicate stable `id` values if the live ordering changes between reads.
 `total` counts stock-side rows and `summary.totalPools` counts distinct pools.
 Preserve metadata status/age/errors and null swap times. See [complete pairing
 examples](STOCK-PAIRINGS.md); discovery alone does not establish trading activity.
+
+
+## Sorting and bounded reads
+
+Markets accepts `sort=price|volume|market_cap|pools` and `order=asc|desc`, alongside
+its existing sorts. Sorting covers every matching token before pagination;
+unavailable numeric values remain last in either direction and equal values use
+contract address ascending. Numeric sorts default descending; `sort=name`
+defaults ascending when `order` is omitted.
+
+```sh
+curl -fsS 'https://fletch.now/api/v1/chains/4663/markets?sort=price&order=asc&pageSize=25'
+curl -fsS 'https://fletch.now/api/v1/chains/4663/assets?type=stock_token&verified=1&sort=price&order=desc&limit=25&offset=0'
+```
+
+Asset reads support `type`, `verified`, `state`, `sort` and `order`. Supplying
+`limit` (1–50) or `offset` enables pagination with `total` and `nextOffset`; omit
+both to preserve the complete collection. Follow `nextOffset` until null.
+
+Markets shares raw observations for at most ten seconds across nearby requests.
+Each response recomputes metric expiry, source ages, filters and ordering. Pairing
+summary `asOf` retains its actual measurement time; neither navigation nor sorting
+refreshes the source data. Requests that fail are not retained in this cache.
