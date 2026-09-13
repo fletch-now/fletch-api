@@ -2,7 +2,7 @@
 
 Every change the registry daemon notices becomes one authority event: a row with a
 stable id, a dotted `kind`, a one-line `title`, and the numbers behind it in `detail`.
-The same rows are served three ways, and a `registry_event` or `token_event` watcher
+The same rows are served three ways, and a `registry_event`, `token_event` or `listing_event` watcher
 delivers them to Telegram or a signed webhook.
 
 | Surface | URL | Shape |
@@ -14,6 +14,21 @@ delivers them to Telegram or a signed webhook.
 Kinds are added to but never renamed: they are part of the API and of every
 subscriber's filter. The JSON response's `kinds` array is the list the running daemon
 can emit; the table below is that list on 2026-09-05, 36 kinds.
+
+## App catalog events
+
+| Kind | Recorded observation |
+| --- | --- |
+| `listing.observed` | Initial catalog baseline; excluded from watcher delivery |
+| `listing.added` | A pair first appears after the baseline |
+| `listing.changed` | Display, tradability, account availability or other catalog fields change |
+| `listing.removed` | A previously present pair is absent |
+
+`detail` carries the catalog source, before/after fields and changed field names.
+Observation time is when Fletch saw the response. An app price feed is not a
+tradable listing. `listing_event` watchers subscribe to these changes and exclude
+the baseline. The human changelog groups pool bursts; the API retains each event.
+See [catalog examples](APP-CATALOG.md).
 
 ## One event
 

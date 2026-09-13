@@ -83,6 +83,36 @@ selected-pool 24h volume. Stale or missing volume remains null and sorts last,
 with stable identity ordering. Traction is a separate pool sort. Volume does not establish a token's trust.
 Registry asset reads accept ?trust=verified or ?trust=listed. Their collection remains Robinhood listings; community addresses resolve through /tokens/{address}. /chains/4663/markets returns priority tokens; /chains/4663/dex/pools drills into pools.
 
+## Robinhood app status and live listings
+
+curl -fsS 'https://fletch.now/api/v1/chains/4663/app-catalog?q=FRONG'
+curl -fsS 'https://fletch.now/api/v1/chains/4663/markets?q=FRONG'
+curl -fsS 'https://fletch.now/api/v1/chains/4663/events?kind=listing.&limit=10'
+curl -N 'https://fletch.now/api/v1/chains/4663/events/stream'
+
+App catalog reads need no key. Follow nextOffset with offset until it is null;
+limit is 1 to 200. q searches symbols and names. status accepts tradable,
+display_only or unavailable. The response includes all matching catalog symbols,
+including those with no known contract. marketsUrl looks up on-chain observations.
+Pagination reads the current snapshot; entries may change between requests.
+
+The catalog observer targets 15 seconds. observedAt, ageSeconds, stale and error
+record its actual condition. Price feed only means the app displays the asset
+without enabling trades. Per-account tradability remains in each pair. Catalog
+appearance does not verify an on-chain contract or imply endorsement.
+
+Markets rows carry robinhoodApp and stockPairings. Each pairing records its
+stockVerdict: canonical, lookalike or unconfirmed. catalogMatches keeps catalog
+symbols visible even when the selected market table has no row for them.
+
+The stream carries all event kinds. Listen to named SSE events listing.added,
+listing.changed and listing.removed. Apply filters client-side after cursor reads.
+listing.observed records the initial baseline; it does not trigger watchers.
+Retain the SSE id and send Last-Event-ID when reconnecting. Account alerts use
+POST /watchers with kind listing_event and an owned webhookId, or Telegram.
+Use /status scouting for discovery queues, pending contract checks and source
+freshness. Minute scheduling is a work cadence; each metric has its own age.
+
 ## Authentication and limits
 
 Registry GET routes are public unless their OpenAPI security field says otherwise.
@@ -118,7 +148,7 @@ estimates on v4 where per-pool reserves are unavailable. Consult the schema.
 USDG swap volume uses nominal quote denomination at 1 USDG = $1. WETH uses
 a historical oracle estimate, with archived samples and the published feed
 heartbeat retained as evidence. Holders carry their source and observation time.
-For public Robinscan counts that time is the page fetch; the source does not
+For indexed explorer counts that time is the fetch; the source does not
 publish its index snapshot time.
 Community dominance records the economic selection rule and same-name alternatives;
 it never changes the token trust verdict.
@@ -271,6 +301,9 @@ new_pool, delivered to Telegram or signed webhooks.
 These are scheduling intervals, not guaranteed data ages. Read /status for the
 actual last successful run. A job schedules its next run after the previous run.
 
+- app-catalog: 15 seconds
+- explorer-scouting: 60 seconds
+- stock-pair-history: 60 seconds
 - control-plane: 20 seconds
 - authority-match: 10 seconds
 - new-pool-match: 60 seconds
@@ -286,11 +319,11 @@ actual last successful run. A job schedules its next run after the previous run.
 - transfer-ledger: 60 seconds
 - holder-labels: 3600 seconds
 - concentration: 86400 seconds
-- dex-pools: 600 seconds
-- dex-pools-v3: 600 seconds
+- dex-pools: 60 seconds
+- dex-pools-v3: 60 seconds
 - dex-state: 45 seconds
-- priority-universe: 300 seconds
-- priority-holders: 300 seconds
+- priority-universe: 60 seconds
+- priority-holders: 60 seconds
 - dex-tokens: 60 seconds
 - dex-token-discovery: 60 seconds
 - priority-supply: 60 seconds

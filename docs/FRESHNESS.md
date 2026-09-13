@@ -115,7 +115,7 @@ Nominal cadences observed on 8 September 2026. Always use the response's current
 | `corporate-actions` | 1 h | corporate actions from the issuer's API |
 | `holder-labels` | 1 h | which holders are pools, contracts, the issuer or the bridge |
 | `issuer-pages` | 1 h | the issuer's watched pages |
-| `second-source` | 1 h | Blockscout's holders, transfers and supply per token |
+| `second-source` | 1 h | The chain explorer's holders, transfers and supply per token |
 | `state-daily` | 1 h | the current UTC day's row of every per-asset figure |
 | `canonical` | 6 h | the beacon proof for every token |
 | `bridged` | 6 h | the GatewayRouter proof for bridged assets |
@@ -204,3 +204,15 @@ Current and failed counts may overlap after a failed refresh. Null coverage
 means no measurement is recorded. Age the counts from `measuredAt`; successful
 scheduling cannot refresh those observations. `swapIndexer` separately reports
 indexed progress and complete/valued priority-pool coverage.
+
+## Catalog and scouting
+
+App catalog observation targets 15 seconds and becomes stale after 60 seconds.
+Inspect `source`, `observedAt`, `ageSeconds`, `stale` and `error` on catalog reads.
+`scouting.explorer` reports completed and due searches, discovered candidate
+contracts, pending contract checks, last search time and provider response age.
+These counts describe coverage at `measuredAt`; they do not verify token identity.
+Contract searches retain page cursors and resume each minute. Completed searches
+are revisited after six hours, while changed catalog entries become due earlier.
+Holder work runs each minute in bounded batches; each holder reading keeps its
+fetch time and explicitly unknown source index time where unpublished.

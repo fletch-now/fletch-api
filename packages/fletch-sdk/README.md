@@ -114,3 +114,17 @@ Inspect source time, fetch time, block/hash, computation method and coverage.
 Market cap expires with its earliest required supply, burn, decimals or price
 input. An expired value stays unavailable; a zero stays zero. See the repository's
 [metric freshness contract](../../docs/FRESHNESS.md).
+
+## App catalog
+
+```ts
+const catalog = await fletch.appCatalog(4663, { q: "FRONG", limit: 10 });
+console.log(catalog.items[0]?.status, catalog.source, catalog.ageSeconds, catalog.stale);
+const markets = await fletch.tokenMarkets(4663, { q: "FRONG" });
+console.log(markets.items?.[0]?.robinhoodApp?.status, markets.catalogMatches);
+```
+
+Use `catalog.nextOffset` for the next page. Each pair retains per-account trading
+availability. Catalog status is separate from on-chain trust. The SDK exports
+`AppCatalogPage`, `AppCatalogStatus` and `StockPairing` from the live schema snapshot.
+Read [the catalog guide](../../docs/APP-CATALOG.md) for SSE and watcher delivery.

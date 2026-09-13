@@ -11,6 +11,11 @@ export async function readmeExample(): Promise<void> {
   const status = await fletch.status();
   console.log(status.verdict, status.summary);
 
+  const catalog = await fletch.appCatalog(4663, { q: "FRONG", limit: 10 });
+  console.log(catalog.items[0]?.status, catalog.source, catalog.ageSeconds, catalog.stale);
+  const markets = await fletch.tokenMarkets(4663, { q: "FRONG" });
+  console.log(markets.items?.[0]?.robinhoodApp?.status, markets.catalogMatches);
+
   const { asset, state } = await fletch.asset("AAPL");
   console.log(asset?.address, state?.multiplier);
 

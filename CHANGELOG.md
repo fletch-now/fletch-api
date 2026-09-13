@@ -1,5 +1,13 @@
 # Changelog
 
+## 0.3.0 - 2026-09-13
+
+Add Robinhood app catalog reads with pagination, account trading availability,
+source age and stale/error flags. Market responses include app status and stock
+pairing verdicts. Refresh the public schema and agent examples; document listing
+events, watcher baseline suppression and continuous-stream cursor handling.
+
+
 ## Unreleased
 
 - Add typed `tokenMarkets` and `marketFilters` reads for the shared Markets filter contract. Refresh the live specification, agent reference and generated types on 10 September 2026. npm publication remains pending.

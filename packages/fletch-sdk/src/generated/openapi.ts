@@ -190,6 +190,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chains/{chainId}/app-catalog": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Robinhood app catalog with tradability and observation age
+         * @description Public. Includes symbols without a known on-chain contract. Display-only means a price feed without app trading. Inspect per-account tradability, stale and error. Symbols are ticker matches, not contract verification. Follow nextOffset until null. Pages read the current snapshot, which can change between requests. The observer targets 15 seconds; this endpoint reads its stored result.
+         */
+        get: operations["getAppCatalog"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chains/{chainId}/assets": {
         parameters: {
             query?: never;
@@ -297,7 +317,7 @@ export interface paths {
                                         dailyVolume?: number | null;
                                         tradingHalt?: boolean | null;
                                     } | null;
-                                    /** @description Blockscout's holders, transfers and supply, with supplyAgreement agree|close|differ|unknown. */
+                                    /** @description The chain explorer's holders, transfers and supply, with supplyAgreement agree|close|differ|unknown. */
                                     secondSource?: Record<string, unknown> | null;
                                     tokenPaused?: boolean | null;
                                     totalSupplyRaw?: string | null;
@@ -453,7 +473,7 @@ export interface paths {
                                     dailyVolume?: number | null;
                                     tradingHalt?: boolean | null;
                                 } | null;
-                                /** @description Blockscout's holders, transfers and supply, with supplyAgreement agree|close|differ|unknown. */
+                                /** @description The chain explorer's holders, transfers and supply, with supplyAgreement agree|close|differ|unknown. */
                                 secondSource?: Record<string, unknown> | null;
                                 tokenPaused?: boolean | null;
                                 totalSupplyRaw?: string | null;
@@ -1900,6 +1920,74 @@ export interface paths {
                             };
                             /** Format: date-time */
                             asOf: string;
+                            catalog?: {
+                                ageSeconds: number | null;
+                                error: string | null;
+                                observedAt: string | null;
+                                pairs: {
+                                    asset_currency: {
+                                        code: string;
+                                        display_only: boolean;
+                                        id: string;
+                                        name: string;
+                                    };
+                                    display_only: boolean;
+                                    id: string;
+                                    is_stablecoin: boolean;
+                                    max_order_size: string;
+                                    min_order_size: string;
+                                    quote_currency: {
+                                        code: string;
+                                    };
+                                    symbol: string;
+                                    /** @enum {string} */
+                                    tradability: "tradable" | "untradable";
+                                    tradability_by_account_type: {
+                                        [key: string]: "tradable" | "untradable";
+                                    };
+                                }[];
+                                source: string;
+                                stale: boolean;
+                            };
+                            catalogMatches?: {
+                                addresses: string[];
+                                name: string;
+                                status: {
+                                    ageSeconds: number | null;
+                                    error: string | null;
+                                    /** @enum {string} */
+                                    match: "ticker_only" | "none";
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    pairs: {
+                                        asset_currency: {
+                                            code: string;
+                                            display_only: boolean;
+                                            id: string;
+                                            name: string;
+                                        };
+                                        display_only: boolean;
+                                        id: string;
+                                        is_stablecoin: boolean;
+                                        max_order_size: string;
+                                        min_order_size: string;
+                                        quote_currency: {
+                                            code: string;
+                                        };
+                                        symbol: string;
+                                        /** @enum {string} */
+                                        tradability: "tradable" | "untradable";
+                                        tradability_by_account_type: {
+                                            [key: string]: "tradable" | "untradable";
+                                        };
+                                    }[];
+                                    source: string;
+                                    stale: boolean;
+                                    /** @enum {string} */
+                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                };
+                                symbol: string;
+                            }[];
                             chainId: number;
                             filterDefinitionsUrl?: string;
                             items: {
@@ -1973,6 +2061,40 @@ export interface paths {
                                     source: string | null;
                                     value: number | null;
                                 };
+                                robinhoodApp?: {
+                                    ageSeconds: number | null;
+                                    error: string | null;
+                                    /** @enum {string} */
+                                    match: "ticker_only" | "none";
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    pairs: {
+                                        asset_currency: {
+                                            code: string;
+                                            display_only: boolean;
+                                            id: string;
+                                            name: string;
+                                        };
+                                        display_only: boolean;
+                                        id: string;
+                                        is_stablecoin: boolean;
+                                        max_order_size: string;
+                                        min_order_size: string;
+                                        quote_currency: {
+                                            code: string;
+                                        };
+                                        symbol: string;
+                                        /** @enum {string} */
+                                        tradability: "tradable" | "untradable";
+                                        tradability_by_account_type: {
+                                            [key: string]: "tradable" | "untradable";
+                                        };
+                                    }[];
+                                    source: string;
+                                    stale: boolean;
+                                    /** @enum {string} */
+                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                };
                                 /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
                                 selection: {
                                     /** Format: date-time */
@@ -1985,6 +2107,21 @@ export interface paths {
                                     status: "current" | "stale" | "missing" | "invalid";
                                 };
                                 selectionReason: string;
+                                stockPairings?: {
+                                    canonicalAddress: string;
+                                    communityAddress: string;
+                                    communitySymbol: string | null;
+                                    /** Format: date-time */
+                                    lastSwapAt: string | null;
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    poolId: string;
+                                    stockAddress: string;
+                                    stockSymbol: string;
+                                    /** @enum {string} */
+                                    stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+                                    venue: string;
+                                }[];
                                 swaps24h?: {
                                     /**
                                      * Format: date-time
@@ -2319,6 +2456,33 @@ export interface paths {
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
+                            /** @description Catalog ticker candidates, bytecode evidence and unfinished pool coverage. A ticker match does not establish Robinhood app contract identity. */
+                            scouting?: {
+                                bytecodeCheckedTickers: number;
+                                catalogSymbols: number;
+                                completeVolumePools: number;
+                                explorer?: {
+                                    candidateContracts: number;
+                                    /** Format: date-time */
+                                    lastSearchAt: string | null;
+                                    pendingContractChecks: number;
+                                    provider: {
+                                        creditsAvailable: boolean | null;
+                                        httpStatus: number;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        requestsPerSecond: number | null;
+                                    } | null;
+                                    searchesCompleted: number;
+                                    searchesDue: number;
+                                };
+                                matchedTickers: number;
+                                /** Format: date-time */
+                                measuredAt: string;
+                                pendingPoolTokens: number;
+                                selectedPools: number;
+                                unmatchedSymbols: string[];
+                            } | null;
                             summary?: string;
                             /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
@@ -2531,6 +2695,33 @@ export interface paths {
                                 /** @enum {string} */
                                 verdict: "fresh" | "late" | "failing" | "filling" | "stalled" | "never";
                             }[];
+                            /** @description Catalog ticker candidates, bytecode evidence and unfinished pool coverage. A ticker match does not establish Robinhood app contract identity. */
+                            scouting?: {
+                                bytecodeCheckedTickers: number;
+                                catalogSymbols: number;
+                                completeVolumePools: number;
+                                explorer?: {
+                                    candidateContracts: number;
+                                    /** Format: date-time */
+                                    lastSearchAt: string | null;
+                                    pendingContractChecks: number;
+                                    provider: {
+                                        creditsAvailable: boolean | null;
+                                        httpStatus: number;
+                                        /** Format: date-time */
+                                        observedAt: string;
+                                        requestsPerSecond: number | null;
+                                    } | null;
+                                    searchesCompleted: number;
+                                    searchesDue: number;
+                                };
+                                matchedTickers: number;
+                                /** Format: date-time */
+                                measuredAt: string;
+                                pendingPoolTokens: number;
+                                selectedPools: number;
+                                unmatchedSymbols: string[];
+                            } | null;
                             summary?: string;
                             /** @description Live swap tail and separate backwards backfill. Coverage is measured independently of daemon health. USDG uses a disclosed nominal dollar assumption; supported WETH windows use explicitly estimated historical oracle samples. Inspect valuation methods and valued-pool coverage. */
                             swapIndexer?: {
@@ -2729,6 +2920,40 @@ export interface paths {
                                     source: string | null;
                                     value: number | null;
                                 };
+                                robinhoodApp?: {
+                                    ageSeconds: number | null;
+                                    error: string | null;
+                                    /** @enum {string} */
+                                    match: "ticker_only" | "none";
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    pairs: {
+                                        asset_currency: {
+                                            code: string;
+                                            display_only: boolean;
+                                            id: string;
+                                            name: string;
+                                        };
+                                        display_only: boolean;
+                                        id: string;
+                                        is_stablecoin: boolean;
+                                        max_order_size: string;
+                                        min_order_size: string;
+                                        quote_currency: {
+                                            code: string;
+                                        };
+                                        symbol: string;
+                                        /** @enum {string} */
+                                        tradability: "tradable" | "untradable";
+                                        tradability_by_account_type: {
+                                            [key: string]: "tradable" | "untradable";
+                                        };
+                                    }[];
+                                    source: string;
+                                    stale: boolean;
+                                    /** @enum {string} */
+                                    status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                                };
                                 /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
                                 selection: {
                                     /** Format: date-time */
@@ -2741,6 +2966,21 @@ export interface paths {
                                     status: "current" | "stale" | "missing" | "invalid";
                                 };
                                 selectionReason: string;
+                                stockPairings?: {
+                                    canonicalAddress: string;
+                                    communityAddress: string;
+                                    communitySymbol: string | null;
+                                    /** Format: date-time */
+                                    lastSwapAt: string | null;
+                                    /** Format: date-time */
+                                    observedAt: string | null;
+                                    poolId: string;
+                                    stockAddress: string;
+                                    stockSymbol: string;
+                                    /** @enum {string} */
+                                    stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+                                    venue: string;
+                                }[];
                                 swaps24h?: {
                                     /**
                                      * Format: date-time
@@ -2892,7 +3132,7 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
                                 /** @description The most recent delivery of any status, or null before the first. */
                                 lastDelivery: {
@@ -2977,7 +3217,7 @@ export interface paths {
                          * @default large_transfer
                          * @enum {string}
                          */
-                        kind?: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                        kind?: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                         /** @description new_pool only: alert only on a pool whose token borrows a listed ticker or name. Off by default. */
                         lookalikesOnly?: boolean;
                         name?: string;
@@ -3019,7 +3259,7 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
                                 /** @description The most recent delivery of any status, or null before the first. */
                                 lastDelivery: {
@@ -3069,7 +3309,7 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
                                 /** @description The most recent delivery of any status, or null before the first. */
                                 lastDelivery: {
@@ -3201,7 +3441,7 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
                                 /** @description The most recent delivery of any status, or null before the first. */
                                 lastDelivery: {
@@ -3390,7 +3630,7 @@ export interface paths {
                                 enabled: boolean;
                                 id: string;
                                 /** @enum {string} */
-                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+                                kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
                                 /** @description The most recent delivery of any status, or null before the first. */
                                 lastDelivery: {
@@ -4165,6 +4405,85 @@ export interface webhooks {
 }
 export interface components {
     schemas: {
+        AppCatalogPage: {
+            ageSeconds: number | null;
+            cadenceSeconds: number;
+            chainId: number;
+            error: string | null;
+            items: {
+                label: string;
+                marketsUrl: string;
+                name: string;
+                pairs: {
+                    asset_currency: {
+                        code: string;
+                        display_only: boolean;
+                        id: string;
+                        name: string;
+                    };
+                    display_only: boolean;
+                    id: string;
+                    is_stablecoin: boolean;
+                    max_order_size: string;
+                    min_order_size: string;
+                    quote_currency: {
+                        code: string;
+                    };
+                    symbol: string;
+                    /** @enum {string} */
+                    tradability: "tradable" | "untradable";
+                    tradability_by_account_type: {
+                        [key: string]: "tradable" | "untradable";
+                    };
+                }[];
+                /** @enum {string} */
+                status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                symbol: string;
+            }[];
+            limit: number;
+            nextOffset: number | null;
+            note: string;
+            /** Format: date-time */
+            observedAt: string | null;
+            offset: number;
+            source: string;
+            stale: boolean;
+            total: number;
+        };
+        AppCatalogStatus: {
+            ageSeconds: number | null;
+            error: string | null;
+            /** @enum {string} */
+            match: "ticker_only" | "none";
+            /** Format: date-time */
+            observedAt: string | null;
+            pairs: {
+                asset_currency: {
+                    code: string;
+                    display_only: boolean;
+                    id: string;
+                    name: string;
+                };
+                display_only: boolean;
+                id: string;
+                is_stablecoin: boolean;
+                max_order_size: string;
+                min_order_size: string;
+                quote_currency: {
+                    code: string;
+                };
+                symbol: string;
+                /** @enum {string} */
+                tradability: "tradable" | "untradable";
+                tradability_by_account_type: {
+                    [key: string]: "tradable" | "untradable";
+                };
+            }[];
+            source: string;
+            stale: boolean;
+            /** @enum {string} */
+            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+        };
         Asset: {
             address: string;
             /** @enum {string} */
@@ -4324,6 +4643,21 @@ export interface components {
             status: "pending" | "sent" | "failed" | "retracted";
             watcherId: string;
         };
+        StockPairing: {
+            canonicalAddress: string;
+            communityAddress: string;
+            communitySymbol: string | null;
+            /** Format: date-time */
+            lastSwapAt: string | null;
+            /** Format: date-time */
+            observedAt: string | null;
+            poolId: string;
+            stockAddress: string;
+            stockSymbol: string;
+            /** @enum {string} */
+            stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+            venue: string;
+        };
         TokenMarket: {
             address: string;
             alternatives: {
@@ -4395,6 +4729,40 @@ export interface components {
                 source: string | null;
                 value: number | null;
             };
+            robinhoodApp?: {
+                ageSeconds: number | null;
+                error: string | null;
+                /** @enum {string} */
+                match: "ticker_only" | "none";
+                /** Format: date-time */
+                observedAt: string | null;
+                pairs: {
+                    asset_currency: {
+                        code: string;
+                        display_only: boolean;
+                        id: string;
+                        name: string;
+                    };
+                    display_only: boolean;
+                    id: string;
+                    is_stablecoin: boolean;
+                    max_order_size: string;
+                    min_order_size: string;
+                    quote_currency: {
+                        code: string;
+                    };
+                    symbol: string;
+                    /** @enum {string} */
+                    tradability: "tradable" | "untradable";
+                    tradability_by_account_type: {
+                        [key: string]: "tradable" | "untradable";
+                    };
+                }[];
+                source: string;
+                stale: boolean;
+                /** @enum {string} */
+                status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+            };
             /** @description Recorded bounded universe comparison; expires after fifteen minutes. A stale selection withholds dominantAddress while retaining its explanation and observation time. */
             selection: {
                 /** Format: date-time */
@@ -4407,6 +4775,21 @@ export interface components {
                 status: "current" | "stale" | "missing" | "invalid";
             };
             selectionReason: string;
+            stockPairings?: {
+                canonicalAddress: string;
+                communityAddress: string;
+                communitySymbol: string | null;
+                /** Format: date-time */
+                lastSwapAt: string | null;
+                /** Format: date-time */
+                observedAt: string | null;
+                poolId: string;
+                stockAddress: string;
+                stockSymbol: string;
+                /** @enum {string} */
+                stockVerdict: "canonical" | "lookalike" | "unconfirmed";
+                venue: string;
+            }[];
             swaps24h?: {
                 /**
                  * Format: date-time
@@ -4493,7 +4876,7 @@ export interface components {
             enabled: boolean;
             id: string;
             /** @enum {string} */
-            kind: "large_transfer" | "wallet_activity" | "registry_event" | "token_event" | "new_pool";
+            kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
             lastCheckedBlock?: string | null;
             /** @description The most recent delivery of any status, or null before the first. */
             lastDelivery: {
@@ -4601,4 +4984,162 @@ export interface components {
     pathItems: never;
 }
 export type $defs = Record<string, never>;
-export type operations = Record<string, never>;
+export interface operations {
+    getAppCatalog: {
+        parameters: {
+            query?: {
+                limit?: number;
+                offset?: number;
+                q?: string;
+                status?: "tradable" | "display_only" | "unavailable";
+            };
+            header?: never;
+            path: {
+                chainId: 4663;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recorded app catalog, with freshness and source errors */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageSeconds: number | null;
+                        cadenceSeconds: number;
+                        chainId: number;
+                        error: string | null;
+                        items: {
+                            label: string;
+                            marketsUrl: string;
+                            name: string;
+                            pairs: {
+                                asset_currency: {
+                                    code: string;
+                                    display_only: boolean;
+                                    id: string;
+                                    name: string;
+                                };
+                                display_only: boolean;
+                                id: string;
+                                is_stablecoin: boolean;
+                                max_order_size: string;
+                                min_order_size: string;
+                                quote_currency: {
+                                    code: string;
+                                };
+                                symbol: string;
+                                /** @enum {string} */
+                                tradability: "tradable" | "untradable";
+                                tradability_by_account_type: {
+                                    [key: string]: "tradable" | "untradable";
+                                };
+                            }[];
+                            /** @enum {string} */
+                            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                            symbol: string;
+                        }[];
+                        limit: number;
+                        nextOffset: number | null;
+                        note: string;
+                        /** Format: date-time */
+                        observedAt: string | null;
+                        offset: number;
+                        source: string;
+                        stale: boolean;
+                        total: number;
+                    };
+                };
+            };
+            /** @description Invalid query */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Unsupported chain */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description No catalog observation yet */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        ageSeconds: number | null;
+                        cadenceSeconds: number;
+                        chainId: number;
+                        error: string | null;
+                        items: {
+                            label: string;
+                            marketsUrl: string;
+                            name: string;
+                            pairs: {
+                                asset_currency: {
+                                    code: string;
+                                    display_only: boolean;
+                                    id: string;
+                                    name: string;
+                                };
+                                display_only: boolean;
+                                id: string;
+                                is_stablecoin: boolean;
+                                max_order_size: string;
+                                min_order_size: string;
+                                quote_currency: {
+                                    code: string;
+                                };
+                                symbol: string;
+                                /** @enum {string} */
+                                tradability: "tradable" | "untradable";
+                                tradability_by_account_type: {
+                                    [key: string]: "tradable" | "untradable";
+                                };
+                            }[];
+                            /** @enum {string} */
+                            status: "tradable" | "display_only" | "not_in_app" | "unavailable";
+                            symbol: string;
+                        }[];
+                        limit: number;
+                        nextOffset: number | null;
+                        note: string;
+                        /** Format: date-time */
+                        observedAt: string | null;
+                        offset: number;
+                        source: string;
+                        stale: boolean;
+                        total: number;
+                    };
+                };
+            };
+        };
+    };
+}

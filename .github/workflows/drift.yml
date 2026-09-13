@@ -1,4 +1,4 @@
-# Refetches the spec and llms.txt once a week. scripts/snapshot.mjs writes
+# Refetches the spec and llms.txt daily. scripts/snapshot.mjs writes
 # nothing when the served bytes match spec/, so the pull request step finds a
 # clean tree and opens nothing; when they differ, the typecheck and offline
 # tests run here first, because a pull request opened with GITHUB_TOKEN does not
@@ -12,7 +12,7 @@ name: snapshot drift
 
 on:
   schedule:
-    - cron: "17 6 * * 1"
+    - cron: "17 6 * * *"
   workflow_dispatch:
 
 permissions:

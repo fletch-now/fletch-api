@@ -314,3 +314,14 @@ test("bounded market reads retain nested source evidence, expiry, selection and 
   assert.deepEqual(status.jobs[0]?.metricCoverage?.supply, metricCoverage);
   assert.equal(calls.length, 2, "helpers make only the requested reads");
 });
+
+test("app catalog keeps display-only status and source failures through a typed read", async function catalog() {
+  const body = { chainId: 4663, source: "https://nummus.robinhood.com/currency_pairs/", observedAt: "2026-09-13T20:00:00.000Z", ageSeconds: 90, stale: true, error: "Source HTTP 403", cadenceSeconds: 15, items: [{ symbol: "FRONG", name: "FRONG", status: "display_only", label: "Price feed only in the Robinhood app", pairs: [], marketsUrl: "/api/v1/chains/4663/markets?q=FRONG" }], total: 1, limit: 100, offset: 0, nextOffset: null, note: "Ticker match only" };
+  const fake = fakeFetch(() => jsonResponse(body));
+  const client = new FletchClient({ fetch: fake.fetch });
+  const result = await client.appCatalog(4663, { q: "FRONG", status: "display_only", limit: 100 });
+  assert.deepEqual(result, body);
+  assert.equal(result.items[0]?.status, "display_only");
+  assert.equal(result.stale, true);
+  assert.equal(new URL(fake.calls[0]!.url).searchParams.get("status"), "display_only");
+});

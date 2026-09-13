@@ -30,6 +30,9 @@ export type MetricObservation = components["schemas"]["MetricObservation"];
 export type MetricInput = MetricObservation["inputs"][number];
 export type MarketSelection = components["schemas"]["MarketSelection"];
 export type TokenMarket = components["schemas"]["TokenMarket"];
+export type AppCatalogPage = components["schemas"]["AppCatalogPage"];
+export type AppCatalogStatus = components["schemas"]["AppCatalogStatus"];
+export type StockPairing = components["schemas"]["StockPairing"];
 
 export type EventsBody = Body<"/chains/{chainId}/events">;
 export type AuthorityEvent = NonNullable<EventsBody["events"]>[number];
@@ -274,6 +277,10 @@ export class FletchClient {
   async status(chainId: number = MAINNET_CHAIN_ID): Promise<Freshness> {
     const result = await this.get("/chains/{chainId}/status", { path: { chainId } });
     return result.body as unknown as Freshness;
+  }
+
+  async appCatalog(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/app-catalog">): Promise<AppCatalogPage> {
+    return (await this.get("/chains/{chainId}/app-catalog", requestOptions({ chainId }, query))).body;
   }
 
   async tokenMarkets(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/markets">): Promise<Body<"/chains/{chainId}/markets">> {
