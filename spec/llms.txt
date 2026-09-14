@@ -294,6 +294,12 @@ CLI tests with mock providers; their paid build acceptance remains unproven.
 Gateway paid build acceptance also remains unproven.
 Accepted builds run under an independent worker. Closing the tab or restarting
 the website preserves that worker's execution; reconnecting reads stored progress.
+A completed dashboard build saves an isolated preview. The owner selects Publish
+live app to host it, or Publish changes to update an existing public site. Publishing
+uses the saved bundle without a model call or another build credit. The prior site
+stays live during edits. GET /api/v1/builds/:id includes the current project's
+publication.draft, publication.live and publication.job. Draft access links expire
+in 30 minutes. Use the dashboard to publish and connect wallets on the live site.
 Project files and recorded conversations persist. Verified completed steps in the
 initial Kimi 0.39.1 agent stage can preserve source and a clean session for bounded
 continuation. Later stages require their own recovery support. Full cross-provider

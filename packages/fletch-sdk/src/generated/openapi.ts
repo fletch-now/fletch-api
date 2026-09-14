@@ -68,7 +68,30 @@ export interface paths {
                                 deployer?: string;
                                 verified?: boolean | null;
                             }[];
+                            /** @description The project's confirmed public site. A newer build can be an unpublished preview. */
                             previewUrl?: string | null;
+                            /** @description Current project publication state, which can refer to a newer build. Preview links expire after 30 minutes; read this endpoint again for a fresh link. */
+                            publication?: {
+                                draft?: {
+                                    buildId?: string;
+                                    bytes?: number;
+                                    /** Format: date-time */
+                                    createdAt?: string;
+                                    /** Format: uri */
+                                    previewUrl?: string;
+                                } | null;
+                                job?: {
+                                    buildId?: string;
+                                    error?: string | null;
+                                    /** @enum {string} */
+                                    state?: "queued" | "publishing" | "published" | "failed";
+                                } | null;
+                                live?: {
+                                    buildId?: string | null;
+                                    /** Format: uri */
+                                    url?: string;
+                                } | null;
+                            } | null;
                             /** @description Sandbox frontend template version recorded for this build. Null when unknown, including legacy builds. */
                             templateVersion?: string | null;
                             /** @description forge test --json result, or null if not yet run. */
