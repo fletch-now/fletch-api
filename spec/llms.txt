@@ -71,6 +71,9 @@ curl -fsS https://fletch.now/api/v1/chains/4663/assets/TSLA
 The status endpoint returns HTTP 200 for a successful status read even when its
 verdict is degraded, stale or never. Inspect verdict, jobs, timestamps and
 checkpoints before using figures. HTTP 200 is not a claim that the data is current.
+With a running worker, degraded means at least 10 jobs are failing, late, stalled
+or awaiting their first completed run. Fewer than 10 keeps the overall verdict
+live; individual job results and observation ages still determine data freshness.
 An advancing backfill is filling; it has not finished reading history. A stalled
 checkpoint is incomplete work. Check coverage on each response. Missing or unread
 prices, balances and history must not be treated as zero.

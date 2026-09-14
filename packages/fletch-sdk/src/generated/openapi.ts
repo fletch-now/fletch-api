@@ -2513,7 +2513,7 @@ export interface paths {
         };
         /**
          * Whether the registry is live: the daemon's heartbeat, every job against its cadence, the scanners still reading history, and the age of every published figure
-         * @description Public. Always 200; the verdict is in the body ('live', 'degraded', 'stale', 'never'), so a stale registry is a fact to read rather than an error to retry. Each job carries its cadence, last successful run, age and verdict ('fresh', 'late', 'failing', 'filling', 'stalled', 'never'); metadataBacklog reports the measured due, visible, never-read and failed token counts after the last successful metadata batch; filling does not mean complete coverage; each figure names the job that writes it and the newest timestamp behind it. Also served at /api/v1/status.
+         * @description Public. Always 200; the verdict is in the body ('live', 'degraded', 'stale', 'never'), so a stale registry is a fact to read rather than an error to retry. A running worker is degraded when at least 10 jobs are failing, late, stalled or awaiting their first completed run; fewer than 10 keeps the overall verdict live. Individual job results remain visible. Each job carries its cadence, last successful run, age and verdict ('fresh', 'late', 'failing', 'filling', 'stalled', 'never'); metadataBacklog reports the measured due, visible, never-read and failed token counts after the last successful metadata batch; filling does not mean complete coverage; each figure names the job that writes it and the newest timestamp behind it. Also served at /api/v1/status.
          */
         get: {
             parameters: {
