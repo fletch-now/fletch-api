@@ -4,6 +4,191 @@
  */
 
 export interface paths {
+    "/apps": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Browse publicly listed apps
+         * @description Public beta directory. Only owner-submitted, admin-approved listings for the current published build are returned. Unlisted, suspended, pending, deleted and banned-owner apps are omitted. Descriptions are creator-provided. Responses must revalidate on every read so revoked listings are removed. Sorted by featured, then first listing time. Pagination can change as owners edit listings.
+         */
+        get: {
+            parameters: {
+                query?: {
+                    /** @description 24 apps per page. Follow next until null. */
+                    page?: number;
+                    /** @description Full-text search over app name and descriptions. */
+                    q?: string;
+                };
+                header?: never;
+                path?: never;
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Approved app listings */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            apps: {
+                                description: string;
+                                featured: boolean;
+                                /** Format: date-time */
+                                listedAt: string;
+                                /** Format: uri */
+                                liveUrl: string;
+                                /** @description Stable app slug. Its page is /published/{slug}. */
+                                slug: string;
+                                summary: string;
+                                title: string;
+                                /** @description Metadata read from a project-recorded contract at a pinned block. This check is not a security audit. Source verification is a separate chain explorer observation. */
+                                token: {
+                                    address: string;
+                                    blockNumber: string;
+                                    /** @enum {integer} */
+                                    chainId: 4663 | 46630;
+                                    /** Format: date-time */
+                                    checkedAt: string;
+                                    decimals: number;
+                                    name: string;
+                                    sourceVerified: boolean;
+                                    /** Format: date-time */
+                                    sourceVerifiedAt: string | null;
+                                    symbol: string;
+                                    /** @description Raw integer units at blockNumber; apply decimals. */
+                                    totalSupply: string;
+                                } | null;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            }[];
+                            hasMore: boolean;
+                            next: string | null;
+                            page: number;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/apps/{slug}": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Read a publicly listed app
+         * @description Public. Returns the same approved description and token evidence as /published/{slug}. A 404 also covers private or withdrawn listings. No prompts, source files, owner identity or build logs are included.
+         */
+        get: {
+            parameters: {
+                query?: never;
+                header?: never;
+                path: {
+                    slug: string;
+                };
+                cookie?: never;
+            };
+            requestBody?: never;
+            responses: {
+                /** @description Public app and optional token observation */
+                200: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            app: {
+                                description: string;
+                                featured: boolean;
+                                /** Format: date-time */
+                                listedAt: string;
+                                /** Format: uri */
+                                liveUrl: string;
+                                /** @description Stable app slug. Its page is /published/{slug}. */
+                                slug: string;
+                                summary: string;
+                                title: string;
+                                /** @description Metadata read from a project-recorded contract at a pinned block. This check is not a security audit. Source verification is a separate chain explorer observation. */
+                                token: {
+                                    address: string;
+                                    blockNumber: string;
+                                    /** @enum {integer} */
+                                    chainId: 4663 | 46630;
+                                    /** Format: date-time */
+                                    checkedAt: string;
+                                    decimals: number;
+                                    name: string;
+                                    sourceVerified: boolean;
+                                    /** Format: date-time */
+                                    sourceVerifiedAt: string | null;
+                                    symbol: string;
+                                    /** @description Raw integer units at blockNumber; apply decimals. */
+                                    totalSupply: string;
+                                } | null;
+                                /** Format: date-time */
+                                updatedAt: string;
+                            };
+                        };
+                    };
+                };
+                /** @description App not publicly listed */
+                404: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+                /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+                429: {
+                    headers: {
+                        [name: string]: unknown;
+                    };
+                    content: {
+                        "application/json": {
+                            error: string;
+                        };
+                    };
+                };
+            };
+        };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/builds/{id}": {
         parameters: {
             query?: never;
@@ -4884,6 +5069,23 @@ export interface components {
             providerConfigured: boolean;
             rpcUrl: string;
         };
+        /** @description Metadata read from a project-recorded contract at a pinned block. This check is not a security audit. Source verification is a separate chain explorer observation. */
+        DirectoryToken: {
+            address: string;
+            blockNumber: string;
+            /** @enum {integer} */
+            chainId: 4663 | 46630;
+            /** Format: date-time */
+            checkedAt: string;
+            decimals: number;
+            name: string;
+            sourceVerified: boolean;
+            /** Format: date-time */
+            sourceVerifiedAt: string | null;
+            symbol: string;
+            /** @description Raw integer units at blockNumber; apply decimals. */
+            totalSupply: string;
+        } | null;
         Error: {
             error: string;
         };
@@ -4957,6 +5159,37 @@ export interface components {
             id: string;
             name: string;
             slug: string;
+        };
+        PublicApp: {
+            description: string;
+            featured: boolean;
+            /** Format: date-time */
+            listedAt: string;
+            /** Format: uri */
+            liveUrl: string;
+            /** @description Stable app slug. Its page is /published/{slug}. */
+            slug: string;
+            summary: string;
+            title: string;
+            /** @description Metadata read from a project-recorded contract at a pinned block. This check is not a security audit. Source verification is a separate chain explorer observation. */
+            token: {
+                address: string;
+                blockNumber: string;
+                /** @enum {integer} */
+                chainId: 4663 | 46630;
+                /** Format: date-time */
+                checkedAt: string;
+                decimals: number;
+                name: string;
+                sourceVerified: boolean;
+                /** Format: date-time */
+                sourceVerifiedAt: string | null;
+                symbol: string;
+                /** @description Raw integer units at blockNumber; apply decimals. */
+                totalSupply: string;
+            } | null;
+            /** Format: date-time */
+            updatedAt: string;
         };
         Run: {
             /** Format: date-time */

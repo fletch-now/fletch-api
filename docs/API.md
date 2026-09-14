@@ -1,5 +1,21 @@
 # Fletch API v1
 
+## Public app directory
+
+`GET /apps?q=counter&page=1` returns `apps`, `page`, `hasMore` and `next`, with 24
+entries per page. `GET /apps/{slug}` returns `{app}`. Both reads accept anonymous
+requests and support CORS, ETags and the standard read budgets. Revalidate every
+read. Private, pending, withdrawn and suspended listings return 404 and disappear
+from collections. A newly published version requires another directory review.
+
+Each app includes a title, descriptions, live URL, listing dates and optional token
+metadata. The token has a chain ID, address, raw supply, decimals, observation block
+and check time. Source verification is recorded separately. A token metadata check
+does not establish security; chain 46630 is testnet. Owner submission and admin
+moderation are dashboard operations in this beta.
+
+TypeScript: `client.publishedApps({ q, page })` and `client.publishedApp(slug)`.
+
 The HTTP API behind fletch.now: the Robinhood Chain registry, its changelog, and
 watchers that deliver to Telegram or a signed webhook. The dashboard reads the same
 routes, so a script and a browser tab never disagree. Registry reads need no key.

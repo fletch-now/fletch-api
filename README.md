@@ -7,6 +7,11 @@ generated TypeScript client for the Fletch v1 API: Stock Tokens, community token
 Robinhood Chain, the changelog, and watchers that record dashboard matches with optional
 Telegram or signed webhook notifications.
 
+The public app directory adds `GET /apps` and `GET /apps/{slug}`, with typed SDK
+helpers `publishedApps()` and `publishedApp()`. Listings include creator-provided
+descriptions and optional token metadata checks. Public results follow owner
+consent, admin review and the currently published app version.
+
 The TypeScript client lives in `packages/fletch-sdk`; it is not on npm yet. Until it
 is, build it from this repository and import the result:
 

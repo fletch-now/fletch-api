@@ -8,6 +8,12 @@ import { FletchClient } from "../src/index.ts";
 export async function readmeExample(): Promise<void> {
   const fletch = new FletchClient();
 
+  const apps = await fletch.publishedApps({ q: "counter", page: 1 });
+  for (const listed of apps.apps) {
+    const app = await fletch.publishedApp(listed.slug);
+    console.log(app.title, app.liveUrl, app.token?.checkedAt);
+  }
+
   const status = await fletch.status();
   console.log(status.verdict, status.summary);
 

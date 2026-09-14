@@ -33,6 +33,25 @@ test("builds the URL from path and query parameters", function run() {
   }, /symbol/);
 });
 
+test("published app reads revalidate and never reuse a withdrawn listing", async function directory() {
+  const app: import("../src/index.ts").PublicApp = { slug: "counter-demo", title: "Counter demo", summary: "A controlled counter app.", description: "A public demonstration of a browser counter.", liveUrl: "https://counter-demo.apps.fletch.now", token: null, featured: false, listedAt: "2026-09-14T17:00:00Z", updatedAt: "2026-09-14T17:00:00Z" };
+  let publicListing = true;
+  const fake = fakeFetch(function answer(call) {
+    if (new URL(call.url).pathname.endsWith("/apps")) return jsonResponse({ apps: [app], page: 2, hasMore: false, next: null });
+    if (!publicListing) return jsonResponse({ error: "App not found." }, {}, 404);
+    return jsonResponse({ app }, { etag: 'W/"listing-v1"', "cache-control": "public, max-age=0, must-revalidate" });
+  });
+  const client = new FletchClient({ fetch: fake.fetch });
+  const page = await client.publishedApps({ q: "counter & demo", page: 2 });
+  assert.deepEqual(page.apps, [app]);
+  assert.equal(new URL(fake.calls[0]!.url).searchParams.get("q"), "counter & demo");
+  assert.equal(new URL(fake.calls[0]!.url).searchParams.get("page"), "2");
+  assert.deepEqual(await client.publishedApp(app.slug), app);
+  publicListing = false;
+  await assert.rejects(client.publishedApp(app.slug), function hidden(error: unknown): boolean { return error instanceof FletchError && error.status === 404; });
+  assert.equal(fake.calls[2]!.headers["if-none-match"], 'W/"listing-v1"');
+});
+
 test("stock pairing pages retain complete counts, pending metadata and source scope", async () => {
   const address = "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec";
   const body = { chainId: 4663, address, items: [{ id: `pool:${address}`, communitySymbol: null,

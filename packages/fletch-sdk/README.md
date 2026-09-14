@@ -8,6 +8,12 @@ cache so a poll that sees a 304 costs no bytes.
 
 Node 22.18 or later (the tests run the `.ts` sources directly).
 
+The beta app directory is available through `publishedApps({ q, page })` and
+`publishedApp(slug)`. These public reads return owner-submitted, approved listings
+and optional token metadata with its network, address and check time. Each read
+revalidates with the server, so a withdrawn listing returns 404 even after an
+earlier response was cached. Manage listings in the Fletch dashboard.
+
 The package is not on npm yet. Until it is, build it from this repository and import
 the result:
 
@@ -20,6 +26,12 @@ npm ci && npm run build --workspace fletch-sdk
 import { FletchClient } from "fletch-sdk";
 
 const fletch = new FletchClient();
+
+const apps = await fletch.publishedApps({ q: "counter", page: 1 });
+for (const listed of apps.apps) {
+  const app = await fletch.publishedApp(listed.slug);
+  console.log(app.title, app.liveUrl, app.token?.checkedAt);
+}
 
 const status = await fletch.status();
 console.log(status.verdict, status.summary);

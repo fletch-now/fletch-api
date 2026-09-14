@@ -86,6 +86,21 @@ selected-pool 24h volume. Stale or missing volume remains null and sorts last,
 with stable identity ordering. Traction is a separate pool sort. Volume does not establish a token's trust.
 Registry asset reads accept ?trust=verified or ?trust=listed. Their collection remains Robinhood listings; community addresses resolve through /tokens/{address}. /chains/4663/markets returns priority tokens; /chains/4663/dex/pools drills into pools.
 
+## Public app directory
+
+curl -fsS 'https://fletch.now/api/v1/apps'
+curl -fsS 'https://fletch.now/api/v1/apps?q=counter&page=1'
+
+GET /apps returns apps, page, hasMore and next (24 per page). Follow next until
+null. GET /apps/{slug} returns {app}; the public page is /published/{slug}.
+Descriptions come from the creator. Only opted-in, reviewed listings for the
+current published build are returned. Revalidate each read; unlisted, pending,
+suspended, deleted or banned-owner listings disappear from the public response.
+Token evidence is a pinned-block metadata check with chainId, address, checkedAt,
+blockNumber and raw totalSupply. sourceVerified records a separate explorer check.
+It does not establish token safety. Chain 46630 is testnet. Listing management and
+publication require the owner's dashboard; the public API exposes reads only.
+
 ## Robinhood app status and live listings
 
 curl -fsS 'https://fletch.now/api/v1/chains/4663/app-catalog?q=FRONG'

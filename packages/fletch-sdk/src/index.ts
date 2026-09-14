@@ -36,6 +36,8 @@ export type StockPairing = components["schemas"]["StockPairing"];
 export type StockPairingPage = components["schemas"]["StockPairingPage"];
 export type StockPairingSummary = components["schemas"]["StockPairingSummary"];
 export type StockTokenMembership = components["schemas"]["StockTokenMembership"];
+export type PublicApp = components["schemas"]["PublicApp"];
+export type DirectoryToken = components["schemas"]["DirectoryToken"];
 
 export type EventsBody = Body<"/chains/{chainId}/events">;
 export type AuthorityEvent = NonNullable<EventsBody["events"]>[number];
@@ -284,6 +286,14 @@ export class FletchClient {
 
   async appCatalog(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/app-catalog">): Promise<AppCatalogPage> {
     return (await this.get("/chains/{chainId}/app-catalog", requestOptions({ chainId }, query))).body;
+  }
+
+  async publishedApps(query?: Query<"/apps">): Promise<Body<"/apps">> {
+    return (await this.get("/apps", requestOptions({}, query))).body;
+  }
+
+  async publishedApp(slug: string): Promise<PublicApp> {
+    return (await this.get("/apps/{slug}", { path: { slug } })).body.app;
   }
 
   async stockPairings(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/stock-pairings">): Promise<StockPairingPage> {
