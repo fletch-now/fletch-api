@@ -240,7 +240,17 @@ t=<unix>,v1=<hex HMAC-SHA256(secret, timestamp + "." + rawBody)>.
 Use constant-time comparison and a timestamp tolerance appropriate to your retry
 handling. Deduplicate the stable body id, accept repeated delivery, and return a
 2xx promptly after durable acceptance. queuedAt and sentAt represent different
-moments. The sender retries failures; inspect endpoint and delivery status.
+moments. The sender retries failures up to eight attempts and honors Retry-After
+up to 24 hours. Requests time out after 10 seconds; redirects and private addresses
+are refused. Endpoint lastTestAt/lastTestStatus/lastTestError describe connection
+tests. lastAlertAt/lastAlertStatus/lastAlertError describe the latest watcher alert
+attempt. These histories are separate; lastDeliveredAt includes both tests and
+alerts for compatibility. A test ping has watcher:null and cannot establish that
+a watcher matched an event. Inspect GET /watchers/{id}/runs for that history.
+Settings lists assigned watchers and lets you change a watcher's channel. Disabled
+endpoints pause their running watchers and retain queued notifications without
+using retry attempts. Re-enabling preserves manual watcher pauses. Choosing a
+new webhook also queues held matches from the last 24 hours.
 
 ## MCP
 

@@ -4083,6 +4083,14 @@ export interface paths {
                                 id: string;
                                 /**
                                  * Format: date-time
+                                 * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+                                 */
+                                lastAlertAt?: string | null;
+                                lastAlertError?: string | null;
+                                /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+                                lastAlertStatus?: number | null;
+                                /**
+                                 * Format: date-time
                                  * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
                                  */
                                 lastDeliveredAt?: string | null;
@@ -4093,6 +4101,14 @@ export interface paths {
                                  * @description When lastError was written. Null on an endpoint whose last failure predates this field.
                                  */
                                 lastErrorAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+                                 */
+                                lastTestAt?: string | null;
+                                lastTestError?: string | null;
+                                /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+                                lastTestStatus?: number | null;
                                 name: string;
                                 /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
                                 secret?: string;
@@ -4178,6 +4194,14 @@ export interface paths {
                                 id: string;
                                 /**
                                  * Format: date-time
+                                 * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+                                 */
+                                lastAlertAt?: string | null;
+                                lastAlertError?: string | null;
+                                /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+                                lastAlertStatus?: number | null;
+                                /**
+                                 * Format: date-time
                                  * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
                                  */
                                 lastDeliveredAt?: string | null;
@@ -4188,6 +4212,14 @@ export interface paths {
                                  * @description When lastError was written. Null on an endpoint whose last failure predates this field.
                                  */
                                 lastErrorAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+                                 */
+                                lastTestAt?: string | null;
+                                lastTestError?: string | null;
+                                /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+                                lastTestStatus?: number | null;
                                 name: string;
                                 /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
                                 secret?: string;
@@ -4368,6 +4400,14 @@ export interface paths {
                                 id: string;
                                 /**
                                  * Format: date-time
+                                 * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+                                 */
+                                lastAlertAt?: string | null;
+                                lastAlertError?: string | null;
+                                /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+                                lastAlertStatus?: number | null;
+                                /**
+                                 * Format: date-time
                                  * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
                                  */
                                 lastDeliveredAt?: string | null;
@@ -4378,6 +4418,14 @@ export interface paths {
                                  * @description When lastError was written. Null on an endpoint whose last failure predates this field.
                                  */
                                 lastErrorAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+                                 */
+                                lastTestAt?: string | null;
+                                lastTestError?: string | null;
+                                /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+                                lastTestStatus?: number | null;
                                 name: string;
                                 /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
                                 secret?: string;
@@ -4391,6 +4439,14 @@ export interface paths {
                                 id: string;
                                 /**
                                  * Format: date-time
+                                 * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+                                 */
+                                lastAlertAt?: string | null;
+                                lastAlertError?: string | null;
+                                /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+                                lastAlertStatus?: number | null;
+                                /**
+                                 * Format: date-time
                                  * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
                                  */
                                 lastDeliveredAt?: string | null;
@@ -4401,6 +4457,14 @@ export interface paths {
                                  * @description When lastError was written. Null on an endpoint whose last failure predates this field.
                                  */
                                 lastErrorAt?: string | null;
+                                /**
+                                 * Format: date-time
+                                 * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+                                 */
+                                lastTestAt?: string | null;
+                                lastTestError?: string | null;
+                                /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+                                lastTestStatus?: number | null;
                                 name: string;
                                 /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
                                 secret?: string;
@@ -5269,6 +5333,14 @@ export interface components {
             id: string;
             /**
              * Format: date-time
+             * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+             */
+            lastAlertAt?: string | null;
+            lastAlertError?: string | null;
+            /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+            lastAlertStatus?: number | null;
+            /**
+             * Format: date-time
              * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
              */
             lastDeliveredAt?: string | null;
@@ -5279,6 +5351,14 @@ export interface components {
              * @description When lastError was written. Null on an endpoint whose last failure predates this field.
              */
             lastErrorAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+             */
+            lastTestAt?: string | null;
+            lastTestError?: string | null;
+            /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+            lastTestStatus?: number | null;
             name: string;
             /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
             secret?: string;
@@ -5293,6 +5373,14 @@ export interface components {
             id: string;
             /**
              * Format: date-time
+             * @description Latest attempt to deliver a watcher match. A timestamp alone does not mean it was accepted.
+             */
+            lastAlertAt?: string | null;
+            lastAlertError?: string | null;
+            /** @description HTTP status of that alert attempt; 2xx means the receiver acknowledged it. */
+            lastAlertStatus?: number | null;
+            /**
+             * Format: date-time
              * @description When this endpoint last answered 2xx, including test pings — not necessarily an alert.
              */
             lastDeliveredAt?: string | null;
@@ -5303,6 +5391,14 @@ export interface components {
              * @description When lastError was written. Null on an endpoint whose last failure predates this field.
              */
             lastErrorAt?: string | null;
+            /**
+             * Format: date-time
+             * @description Latest connection test, separate from watcher alerts. Null before separate reporting began or after secret rotation.
+             */
+            lastTestAt?: string | null;
+            lastTestError?: string | null;
+            /** @description HTTP status returned by the latest test. Null for a transport failure or no test. */
+            lastTestStatus?: number | null;
             name: string;
             /** @description Present only in the response that created or rotated this endpoint. Stored encrypted and never returned again. */
             secret?: string;

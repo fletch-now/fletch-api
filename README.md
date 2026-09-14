@@ -70,8 +70,17 @@ on HTTP 429 and preserve null values and unavailable reasons.
 
 `lastDelivery.createdAt` is when Fletch saved the latest match. `lastDelivery.sentAt`
 is null until a notification is sent. Status `held` means the match is saved in the
-dashboard and its Telegram notification is held. A first watcher can record matches
+dashboard and its notification is held. A first watcher can record matches
 before linking a notification channel; additional watchers require Telegram or a webhook.
+
+Webhook connection tests and watcher alert attempts have separate reporting:
+`lastTestAt`, `lastTestStatus`, `lastTestError` and `lastAlertAt`, `lastAlertStatus`,
+`lastAlertError`. A test ping has `watcher: null`; HTTP 2xx confirms receiver
+acknowledgement. Read `/api/v1/watchers/{id}/runs` for matched event delivery
+history. Separate reporting starts with the 14 September release; historical
+`lastDeliveredAt` includes both tests and alerts. Disabled endpoints retain queued
+notifications without consuming attempts. Choosing a new webhook queues held
+matches from the last 24 hours.
 
 ## Working on it
 
