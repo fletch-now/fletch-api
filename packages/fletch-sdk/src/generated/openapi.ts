@@ -20,7 +20,7 @@ export interface paths {
                 query?: {
                     /** @description 24 apps per page. Follow next until null. */
                     page?: number;
-                    /** @description Full-text search over app name and descriptions. */
+                    /** @description Full-text search over app name and descriptions, or an exact token ticker (optional $ prefix) or contract address. */
                     q?: string;
                 };
                 header?: never;

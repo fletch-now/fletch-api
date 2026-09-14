@@ -2,7 +2,7 @@
 
 Fletch builds apps for Robinhood Chain from prompts and attached briefs. The
 hosted builder writes source, runs Foundry and Slither where required, and records
-testnet deployment and front-end publication results. Watch checks token events
+testnet deployment, saved-preview and owner-requested publication results. Watch checks token events
 on the server. Registry & Markets supplies addresses, trust and recorded market
 data when an app or task needs it.
 
@@ -90,12 +90,16 @@ Registry asset reads accept ?trust=verified or ?trust=listed. Their collection r
 
 curl -fsS 'https://fletch.now/api/v1/apps'
 curl -fsS 'https://fletch.now/api/v1/apps?q=counter&page=1'
+curl -fsS 'https://fletch.now/api/v1/apps?q=%24FCHK'
 
 GET /apps returns apps, page, hasMore and next (24 per page). Follow next until
-null. GET /apps/{slug} returns {app}; the public page is /published/{slug}.
+null, up to the 1,000-page bound. GET /apps/{slug} returns {app}; the public page is /published/{slug}.
 Descriptions come from the creator. Only opted-in, reviewed listings for the
 current published build are returned. Revalidate each read; unlisted, pending,
 suspended, deleted or banned-owner listings disappear from the public response.
+q searches app text or matches a token ticker (with an optional $ prefix) or full
+contract address. Token cards link to the app, the listing's token evidence and
+the appropriate chain explorer; a listing does not imply a trading market.
 Token evidence is a pinned-block metadata check with chainId, address, checkedAt,
 blockNumber and raw totalSupply. sourceVerified records a separate explorer check.
 It does not establish token safety. Chain 46630 is testnet. Listing management and
@@ -287,6 +291,12 @@ package is pending publication; the GitHub installation is the supported entry.
 ## Build and Watch scope
 
 Build creation is a dashboard session operation, not a v1 API or MCP tool.
+The homepage Ship action copies a prompt into the builder without submitting it.
+The owner reviews it and clicks Ship again to start. Wallet sign-in preserves
+the builder URL. New addresses receive one starter credit after verified sign-in;
+a repeated sign-in or the same address on another chain does not create a grant.
+Mobile browsers without an injected wallet show wallet-app instructions and a
+MetaMask link. WalletConnect pairing is not configured on this deployment.
 Build accepts 24,000 prompt characters and five text attachments, 64 KiB each and
 128 KiB combined. Native PNG/JPEG input accepts up to
 three images, 2 MiB each, 4 MiB combined, 4096 pixels per side and 16 megapixels.
@@ -300,7 +310,10 @@ Each build binds its provider, model, credential version, capabilities and billi
 choice when queued. Revoked or changed credentials require reconnecting and a new
 build; there is no automatic provider fallback. Hosted keys are encrypted at rest
 and decrypted by the server for use, so service operators can access them.
-Settings uses a provider/key form. Existing advanced local gateway connections remain
+Settings uses a provider/key form with an access check and a Use in Build link.
+That link selects the exact saved connection; it does not start a build.
+Access checks read model metadata without generating tokens and do not guarantee
+available inference quota. Provider rejection and unavailable-model states stay visible. Existing advanced local gateway connections remain
 revocable; their source lives in packages/fletch-gateway. Gateway keys remain in a
 user-controlled process; Fletch still receives prompts and outputs. Gateway builds
 require terminal approval and accept text only; Settings has no download/pairing panel.
@@ -343,10 +356,18 @@ Saved source remains; already-broadcast transactions and incurred provider charg
 retain their outcomes. Browser reconnect does not cancel a running build.
 Hosted contract deployment currently targets testnet 46630. The mainnet dashboard
 deployment flow is disabled.
-USDG credit purchases are dashboard operations at 0.40 USDG per credit when the
-treasury is configured. There is no card checkout or public build-create endpoint.
-Watch supports large_transfer, wallet_activity, token_event, registry_event and
-new_pool, delivered to Telegram or signed webhooks.
+USDG purchase code exists at 0.40 USDG per credit, but checkout is closed on this
+deployment: the treasury is unset and payment finality/reconciliation acceptance
+remains required. There is no card checkout or public build-create endpoint.
+Watch supports large_transfer, wallet_activity, token_event, registry_event,
+listing_event and new_pool. Recorded matches are visible in the dashboard.
+Telegram and signed webhooks are optional delivery channels.
+
+App hosting uses the first server; builds execute on the second. The configured
+ceiling is 50, with memory admission and queueing. This is not a demonstrated
+50-build success rate; 100 concurrent builds are not validated. Existing app
+HTTPS works with individual certificates. Automated wildcard certificate
+issuance is waiting for the DNS credential and renewal acceptance.
 
 ## Scheduled registry jobs
 
