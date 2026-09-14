@@ -4,7 +4,8 @@
 
 OpenAPI 3.1 spec, written reference, event vocabulary, webhook verification and a
 generated TypeScript client for the Fletch v1 API: Stock Tokens, community token markets and Robinhood app status on
-Robinhood Chain, the changelog, and watchers that deliver to Telegram or a signed webhook.
+Robinhood Chain, the changelog, and watchers that record dashboard matches with optional
+Telegram or signed webhook notifications.
 
 The TypeScript client lives in `packages/fletch-sdk`; it is not on npm yet. Until it
 is, build it from this repository and import the result:
@@ -63,9 +64,14 @@ does not verify a contract. Each pairing records its stock side as `canonical`,
 Use `/api/v1/chains/4663/events/stream` for SSE. The stream carries all event kinds;
 listen for `listing.added`, `listing.changed` and `listing.removed`. Retain each
 processed cursor for reconnects. `listing.observed` is the initial baseline and
-does not trigger alerts. Account watchers use `kind: "listing_event"` with an
-owned webhook endpoint or a connected Telegram account. Respect `Retry-After`
+does not trigger alerts. Account watchers use `kind: "listing_event"`. Select an
+owned webhook endpoint or connect Telegram for notifications. Respect `Retry-After`
 on HTTP 429 and preserve null values and unavailable reasons.
+
+`lastDelivery.createdAt` is when Fletch saved the latest match. `lastDelivery.sentAt`
+is null until a notification is sent. Status `held` means the match is saved in the
+dashboard and its Telegram notification is held. A first watcher can record matches
+before linking a notification channel; additional watchers require Telegram or a webhook.
 
 ## Working on it
 

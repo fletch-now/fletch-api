@@ -3335,11 +3335,18 @@ export interface paths {
                                 /** @enum {string} */
                                 kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
-                                /** @description The most recent delivery of any status, or null before the first. */
+                                /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
                                 lastDelivery: {
                                     amount: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When Fletch saved this match.
+                                     */
+                                    createdAt: string;
                                     /** Format: date-time */
                                     sentAt: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "sent" | "failed" | "retracted" | "held";
                                     txHash: string;
                                 } | null;
                                 lastError?: string | null;
@@ -3462,11 +3469,18 @@ export interface paths {
                                 /** @enum {string} */
                                 kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
-                                /** @description The most recent delivery of any status, or null before the first. */
+                                /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
                                 lastDelivery: {
                                     amount: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When Fletch saved this match.
+                                     */
+                                    createdAt: string;
                                     /** Format: date-time */
                                     sentAt: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "sent" | "failed" | "retracted" | "held";
                                     txHash: string;
                                 } | null;
                                 lastError?: string | null;
@@ -3512,11 +3526,18 @@ export interface paths {
                                 /** @enum {string} */
                                 kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
-                                /** @description The most recent delivery of any status, or null before the first. */
+                                /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
                                 lastDelivery: {
                                     amount: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When Fletch saved this match.
+                                     */
+                                    createdAt: string;
                                     /** Format: date-time */
                                     sentAt: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "sent" | "failed" | "retracted" | "held";
                                     txHash: string;
                                 } | null;
                                 lastError?: string | null;
@@ -3644,11 +3665,18 @@ export interface paths {
                                 /** @enum {string} */
                                 kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
-                                /** @description The most recent delivery of any status, or null before the first. */
+                                /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
                                 lastDelivery: {
                                     amount: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When Fletch saved this match.
+                                     */
+                                    createdAt: string;
                                     /** Format: date-time */
                                     sentAt: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "sent" | "failed" | "retracted" | "held";
                                     txHash: string;
                                 } | null;
                                 lastError?: string | null;
@@ -3833,11 +3861,18 @@ export interface paths {
                                 /** @enum {string} */
                                 kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
                                 lastCheckedBlock?: string | null;
-                                /** @description The most recent delivery of any status, or null before the first. */
+                                /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
                                 lastDelivery: {
                                     amount: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When Fletch saved this match.
+                                     */
+                                    createdAt: string;
                                     /** Format: date-time */
                                     sentAt: string | null;
+                                    /** @enum {string} */
+                                    status: "pending" | "sent" | "failed" | "retracted" | "held";
                                     txHash: string;
                                 } | null;
                                 lastError?: string | null;
@@ -5196,11 +5231,18 @@ export interface components {
             /** @enum {string} */
             kind: "large_transfer" | "wallet_activity" | "registry_event" | "listing_event" | "token_event" | "new_pool";
             lastCheckedBlock?: string | null;
-            /** @description The most recent delivery of any status, or null before the first. */
+            /** @description The latest recorded match, including dashboard-only matches. sentAt is null until a notification is sent. */
             lastDelivery: {
                 amount: string | null;
+                /**
+                 * Format: date-time
+                 * @description When Fletch saved this match.
+                 */
+                createdAt: string;
                 /** Format: date-time */
                 sentAt: string | null;
+                /** @enum {string} */
+                status: "pending" | "sent" | "failed" | "retracted" | "held";
                 txHash: string;
             } | null;
             lastError?: string | null;
