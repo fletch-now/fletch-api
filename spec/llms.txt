@@ -38,10 +38,10 @@ https://fletch.now/docs/quickstart-api
 - Registry & Markets: https://fletch.now/docs/markets
 - How the registry reads the chain: https://fletch.now/docs/registry-reading
 - Trust levels: https://fletch.now/docs/trust
-- On-Chain Truth Oracle: https://fletch.now/docs/truth-oracle
-- The Compiler is the Judge: https://fletch.now/docs/compiler
-- Zero Infrastructure Overhead: https://fletch.now/docs/infrastructure
-- Persistence Beyond the Tab: https://fletch.now/docs/persistence
+- Token identity and evidence: https://fletch.now/docs/truth-oracle
+- Build checks and their limits: https://fletch.now/docs/compiler
+- Managed testnet builds and hosting: https://fletch.now/docs/infrastructure
+- Saved progress and background work: https://fletch.now/docs/persistence
 - For agents: https://fletch.now/docs/agents
 - API reference: https://fletch.now/docs/api
 - Limits, pricing, and what is not built yet: https://fletch.now/docs/limits
@@ -105,6 +105,9 @@ per address, including records outside tracked markets. Check source, observedAt
 trust and trackedMarket. An explorer candidate's reported label still needs
 contract verification. trackedMarket describes membership, not current coverage.
 Missing metadata stays null. An empty result does not prove no contract exists.
+Search covers recorded contracts. Child token contracts created by arbitrary
+factory transactions are not automatically indexed; a new token can be absent
+until a supported observation records it.
 
 The query allows 2048 input characters and 128 after normalization. page is
 1 through 99999; limit is 10, 20 or 50, default 10. Supply each parameter once.
@@ -318,12 +321,16 @@ npx -y github:fletch-now/fletch-mcp
 MCP client config:
 {"mcpServers":{"fletch":{"command":"npx","args":["-y","github:fletch-now/fletch-mcp"]}}}
 
-The source package exposes 21 read tools and two resources. Use filter_catalog
+The GitHub package exposes 24 read tools and two resources. Use filter_catalog
 for current Market filter values and token_markets for one 25- or 50-row token
-page. Filter enums are generated from the public catalog. Registry
+page. search_contracts reads recorded contract matches with separate pagination;
+app_catalog reads app status and stock_pairings pages through discovered pools.
+Filter enums are generated from the public catalog. Registry
 tools need no key. FLETCH_API_KEY is used only by the webhooks list tool over
 HTTPS. Use the HTTP API for routes the MCP package does not expose. The npm
 package is pending publication; the GitHub installation is the supported entry.
+The TypeScript SDK also remains pending on npm. Build and install its tarball
+from https://github.com/fletch-now/fletch-api before importing fletch-sdk.
 
 ## Build and Watch scope
 
@@ -341,7 +348,7 @@ Check the selected connection's capabilities.images before submitting images;
 unknown model IDs and existing gateway connections are text-only. The selected
 model receives original image bytes through its native vision API, without a
 second model or description service. Reading attachments consumes provider tokens.
-Choose platform billing or an owned OpenAI, Anthropic or Kimi connection before
+Choose platform billing or an owned model connection before
 submitting. Own-key builds use 0 Fletch credits; provider usage is billed separately.
 Each build binds its provider, model, credential version, capabilities and billing
 choice when queued. Revoked or changed credentials require reconnecting and a new
@@ -354,12 +361,10 @@ available inference quota. Provider rejection and unavailable-model states stay 
 revocable; their source lives in packages/fletch-gateway. Gateway keys remain in a
 user-controlled process; Fletch still receives prompts and outputs. Gateway builds
 require terminal approval and accept text only; Settings has no download/pairing panel.
-Native image adapters passed Docker CLI tests against local mock providers.
-Production Kimi native-image acceptance passed on 8 September 2026 at 15:41 UTC:
-build 5c21dbf7-95ec-4887-b792-67c0c00ebb59 received matching PNG bytes and published
-the requested page. OpenAI and Anthropic native-image adapters passed local Docker
-CLI tests with mock providers; their paid build acceptance remains unproven.
-Gateway paid build acceptance also remains unproven.
+An owned production image build on 8 September received matching original PNG
+bytes and produced a checked hosted page. Local adapter tests exercise other
+model connections, but paid acceptance remains incomplete across connections and
+gateways. Check the selected connection and the actual build result.
 Accepted builds run under an independent worker. Closing the tab or restarting
 the website preserves that worker's execution; reconnecting reads stored progress.
 A completed dashboard build saves an isolated preview. The owner selects Publish
@@ -368,10 +373,20 @@ uses the saved bundle without a model call or another build credit. The prior si
 stays live during edits. GET /api/v1/builds/:id includes the current project's
 publication.draft, publication.live and publication.job. Draft access links expire
 in 30 minutes. Use the dashboard to publish and connect wallets on the live site.
-Project files and recorded conversations persist. Verified completed steps in the
-initial Kimi 0.39.1 agent stage can preserve source and a clean session for bounded
-continuation. Later stages require their own recovery support. Full cross-provider
-memory, automatic compaction and a five-hour app build remain unverified.
+Project files and recorded conversations persist. The installed coding agent
+compacts its active conversation before the context window fills. Fletch saves
+completed summaries, subsequent requests and pending tasks for later Continue
+requests, and shows summarizing/continuing progress. Summaries are bounded and
+can omit details. Current instructions and verified files take precedence over
+historical notes. Builds without a saved summary use bounded prior conversation.
+Verified completed steps in the supported initial coding stage can preserve
+source and a clean session for bounded continuation. Later stages require their
+own recovery support. Exact cross-provider memory, arbitrary interruption recovery
+and a five-hour app build remain unverified.
+Every coding request includes Fletch's code-simplifier standard for readable,
+focused changes that preserve behavior. It remains present after Continue and
+compaction, uses the selected model and adds no separate review call. Compiler,
+test and security results still determine whether the generated work passes.
 New projects receive one purpose-based design direction. Explicit user aesthetics
 override the defaults; DESIGN.md records the actual choices for subsequent edits.
 Text attachments inform the direction in full. Visual references guide the model
@@ -393,18 +408,19 @@ Saved source remains; already-broadcast transactions and incurred provider charg
 retain their outcomes. Browser reconnect does not cancel a running build.
 Hosted contract deployment currently targets testnet 46630. The mainnet dashboard
 deployment flow is disabled.
-USDG purchase code exists at 0.40 USDG per credit, but checkout is closed on this
-deployment: the treasury is unset and payment finality/reconciliation acceptance
-remains required. There is no card checkout or public build-create endpoint.
+Paid checkout is closed. Do not instruct users to send payment for build credits.
+There is no card checkout or public build-create endpoint.
 Watch supports large_transfer, wallet_activity, token_event, registry_event,
-listing_event and new_pool. Recorded matches are visible in the dashboard.
-Telegram and signed webhooks are optional delivery channels.
+listing_event and new_pool on mainnet 4663. Recorded matches are visible in the
+dashboard. A first watcher can record matches before a notification channel is
+connected; more active watchers require Telegram or an owned HTTPS webhook.
+The account limit is five active watchers, including at most one new-pool watcher.
+Mainnet Registry and Watch data do not describe a testnet app's contract activity.
 
-App hosting uses the first server; builds execute on the second. The configured
-ceiling is 50, with memory admission and queueing. This is not a demonstrated
-50-build success rate; 100 concurrent builds are not validated. Existing app
-HTTPS works with individual certificates. Automated wildcard certificate
-issuance is waiting for the DNS credential and renewal acceptance.
+Builds queue when worker capacity or memory admission is unavailable. Published
+apps remain accessible while a new build waits. The configured ceiling of 50
+concurrent builds is not a demonstrated success rate; 100 concurrent builds and
+five-hour endurance have not been validated.
 
 ## Scheduled registry jobs
 

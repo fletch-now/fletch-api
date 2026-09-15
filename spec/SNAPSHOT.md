@@ -1,8 +1,13 @@
-# Candidate contract: Registry contract search
+# Snapshot
 
-Generated 2026-09-14T22:11:04.603Z from the fletch-main working tree at 869ea24a38fd54c59b9f40194d3355961c4125c6 plus current changes. These candidate documents are not a production fetch. Replace with the deployed snapshot before release.
+Fetched 2026-09-15T00:42:44.927Z by `scripts/snapshot.mjs`. Each file is the response body exactly as
+served; the hash is over those bytes. The live documents change when Fletch deploys, so
+compare before assuming the copy here is current.
 
-| File | Bytes | SHA-256 |
-|---|---|---|
-| openapi.json | 216062 | db2705727309e1b6e149a5382c1247a2ff39eb49db09593b6f289685bb9b86ae |
-| llms.txt | 27378 | 14bacb77bc70def24d0465c9123e45d14e7a91293095ff60621ecce9f7be84a2 |
+| File | Source | Server date | Bytes | SHA-256 |
+|---|---|---|---|---|
+| `spec/openapi.json` | https://fletch.now/api/v1/openapi.json | Tue, 15 Sep 2026 00:42:44 GMT | 216062 | `db2705727309e1b6e149a5382c1247a2ff39eb49db09593b6f289685bb9b86ae` |
+| `spec/llms.txt` | https://fletch.now/llms.txt | Tue, 15 Sep 2026 00:42:45 GMT | 28557 | `5e99e84429d673de7ece341a991b6c67c07f1e91f3d6d1b5275491e947ee19d4` |
+
+To refresh: `npm run snapshot && npm run generate`, then commit `spec/` and
+`packages/fletch-sdk/src/generated/` together.

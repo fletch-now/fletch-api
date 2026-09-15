@@ -52,6 +52,18 @@ test("published app reads revalidate and never reuse a withdrawn listing", async
   assert.equal(fake.calls[2]!.headers["if-none-match"], 'W/"listing-v1"');
 });
 
+test("contract search keeps identifiers and independent result pagination intact", async function contractSearch() {
+  const body = { chainId: 4663, query: "$AAOI & token", exact: { items: [] }, suggestions: [], coverage: { complete: false } };
+  const fake = fakeFetch(function answer() { return jsonResponse(body); });
+  const client = new FletchClient({ fetch: fake.fetch });
+  assert.deepEqual(await client.searchContracts(4663, { q: "$AAOI & token", limit: 10, page: 2 }), body);
+  const url = new URL(fake.calls[0]!.url);
+  assert.equal(url.pathname, "/api/v1/chains/4663/search");
+  assert.equal(url.searchParams.get("q"), "$AAOI & token");
+  assert.equal(url.searchParams.get("limit"), "10");
+  assert.equal(url.searchParams.get("page"), "2");
+});
+
 test("stock pairing pages retain complete counts, pending metadata and source scope", async () => {
   const address = "0xd0601ce157db5bdc3162bbac2a2c8af5320d9eec";
   const body = { chainId: 4663, address, items: [{ id: `pool:${address}`, communitySymbol: null,
