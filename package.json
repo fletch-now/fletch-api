@@ -17,7 +17,8 @@
     "generate": "npm run generate --workspace fletch-sdk",
     "typecheck": "npm run typecheck --workspaces",
     "test": "npm test --workspaces",
-    "test:offline": "npm run test:offline --workspaces --if-present"
+    "test:offline": "npm run test:offline --workspaces --if-present",
+    "test:package": "node scripts/check-sdk-package.mjs"
   },
   "repository": {
     "type": "git",

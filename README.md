@@ -12,12 +12,18 @@ helpers `publishedApps()` and `publishedApp()`. Listings include creator-provide
 descriptions and optional token metadata checks. Public results follow owner
 consent, admin review and the currently published app version.
 
-The TypeScript client lives in `packages/fletch-sdk`; it is not on npm yet. Until it
-is, build it from this repository and import the result:
+The TypeScript client lives in `packages/fletch-sdk`. npm publication is pending.
+Build an installable package from this checkout:
 
 ```bash
-npm ci && npm run build --workspace fletch-sdk
+npm ci --ignore-scripts
+npm pack --workspace fletch-sdk
 ```
+
+This writes `fletch-sdk-0.3.2.tgz`. In your application, run
+`npm install /absolute/path/to/fletch-sdk-0.3.2.tgz`, then import
+`FletchClient` from `fletch-sdk`. See [the release guide](docs/RELEASING.md)
+for package checks and npm publishing.
 
 [fletch.now/developers](https://fletch.now/developers) ·
 [fletch.now/api/v1/docs](https://fletch.now/api/v1/docs) ·
@@ -93,6 +99,7 @@ matches from the last 24 hours.
 npm ci
 npm run typecheck
 npm run test:offline          # fixtures and fakes only
+npm run test:package          # installs the tarball and checks runtime/types
 npm test                      # adds the live reads in packages/fletch-sdk/test/live.test.ts
 npm run snapshot && npm run generate   # refetch spec/ and rewrite the SDK's types
 ```

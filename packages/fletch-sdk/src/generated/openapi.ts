@@ -2119,7 +2119,7 @@ export interface paths {
         };
         /**
          * Priority tokens, one contract per row, ordered by observed selected-pool volume
-         * @description Public. Listed assets and selected major community contracts use the same token read model as token pages and /tokens/{address}. Each metric carries structured observation provenance, computation inputs, coverage, source/fetch times and expiry, alongside compatibility source/asOf/reason fields. Pool state expires after three minutes, changing supply and burn balances after five minutes, and selected-pool swap windows after two minutes. Capitalization expires with its earliest-expiring required input. Missing legacy provenance remains null. Selection time and its fifteen-minute policy expiry are explicit; stale selection withholds dominance. Volume covers the selected pool only. All numeric sorts support order=asc or desc, always with unavailable values last and stable contract-address ties. Name sorts ascending when order is omitted. Raw observations can be shared for ten seconds, while ages, expiry and filtering are recomputed per request; source timestamps never become response timestamps. Economic dominance never changes a trust verdict. The selected universe and same-name comparisons are bounded; registry history remains available through the pool and asset endpoints.
+         * @description Public. The unfiltered market table contains tracked tokens. A full address can request another recorded contract's readings. q also returns contractSearch across the recorded registry, with its own total and ten-result pages selected by searchPage; market filters apply to items, not to contractSearch. contractSearchError preserves an unavailable search as an error while existing market readings can still return. Each market metric carries structured observation provenance, computation inputs, coverage, source/fetch times and expiry, alongside compatibility source/asOf/reason fields. Pool state expires after three minutes, changing supply and burn balances after five minutes, and selected-pool swap windows after two minutes. Capitalization expires with its earliest-expiring required input. Missing provenance remains null. Selection time and its fifteen-minute policy expiry are explicit; stale selection withholds dominance. Volume covers the selected pool only. Numeric sorts support order=asc or desc, with unavailable values last and stable contract-address ties. Name sorts ascending when order is omitted. Raw market observations can be shared for ten seconds, while ages, expiry and filtering are recomputed per request. Contract search can be cached for fifteen seconds. Source timestamps retain their observation times. Economic dominance does not change a trust verdict. A missing price or incomplete activity window remains unavailable.
          */
         get: {
             parameters: {
@@ -2140,7 +2140,10 @@ export interface paths {
                     order?: "desc" | "asc";
                     page?: number;
                     pageSize?: 25 | 50;
+                    /** @description Ticker, words in a name, ISIN, full or shortened address, chain-qualified address, supported URL or pool identifier. The normalized query must be at most 128 characters. Matching recorded contracts appear in contractSearch; a full token address also requests its market readings. */
                     q?: string;
+                    /** @description Independent page of ten contractSearch matches when q is supplied. Market pagination still uses page and pageSize. */
+                    searchPage?: number;
                     /** @description price: Current selected-pool price in USD. pools: Recorded canonical pool count. volume: Selected-pool USD volume, highest first. swaps: Selected-pool swap events, highest first. market_cap: Outstanding supply estimate times current price, highest first. v3_depth: Observed quote-side holdings in dollars, highest first. v4_depth: Bounded quote input for a 1% move, highest first. name: Alphabetical name, then contract address. */
                     sort?: "price" | "pools" | "volume" | "swaps" | "market_cap" | "v3_depth" | "v4_depth" | "name";
                     /** @description all: Keep every recorded identity verdict. verified: Issuer listing and matching contract checks. listed: Issuer listing with checks still incomplete. community: Resolved metadata with no recorded issuer-name collision. lookalike: Name or symbol collides with a verified asset. unknown: Identity calls have not resolved this contract. */
@@ -2239,6 +2242,49 @@ export interface paths {
                                 symbol: string;
                             }[];
                             chainId: number;
+                            contractSearch?: {
+                                /**
+                                 * Format: date-time
+                                 * @description When the search result was computed. Use each item's observedAt for the underlying source age.
+                                 */
+                                checkedAt: string;
+                                items: {
+                                    address: string;
+                                    isin: string | null;
+                                    name: string | null;
+                                    /**
+                                     * Format: date-time
+                                     * @description When the label's source was observed. Null means no observation yet; serving a cached result does not advance this time.
+                                     */
+                                    observedAt: string | null;
+                                    /**
+                                     * @description The record that supplied the displayed label. asset_list includes registry assets from issuer, bridge and seed records. explorer_candidate is a reported identity awaiting independent contract checks.
+                                     * @enum {string}
+                                     */
+                                    source: "asset_list" | "contract_metadata" | "lookalike_scan" | "explorer_candidate";
+                                    symbol: string | null;
+                                    /** @description Whether this address belongs to the tracked market set. It does not establish current price or activity coverage. */
+                                    trackedMarket: boolean;
+                                    /**
+                                     * @description Independent registry identity verdict. A search match does not grant verification.
+                                     * @enum {string}
+                                     */
+                                    trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+                                }[];
+                                /** @enum {string} */
+                                mode: "text" | "address" | "fragment" | "pool" | "isin";
+                                page: number;
+                                /** @enum {integer} */
+                                pageSize: 10 | 20 | 50;
+                                /** @description Normalized query after extracting supported links, ticker prefixes or chain-qualified addresses. */
+                                query: string;
+                                /** @description True when no literal text match was found and the response contains similar names or tickers. Inspect the full address before selecting a result. */
+                                similar: boolean;
+                                /** @description Distinct matching recorded addresses before pagination. An empty page beyond the last result retains this total. */
+                                total: number;
+                            };
+                            /** @description Present when contract search could not be read. Existing market readings can still be returned; this is not an empty search result. */
+                            contractSearchError?: string;
                             filterDefinitionsUrl?: string;
                             items: {
                                 address: string;
@@ -2681,6 +2727,26 @@ export interface paths {
                 };
             };
         };
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
+    "/chains/{chainId}/search": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Search recorded token contracts across the registry
+         * @description Public. Searches active asset records, visible contract metadata, lookalike observations and explorer candidates, including addresses outside tracked markets. Accepts case-insensitive tickers with optional $, names with words in any order, recorded on-chain aliases, ISINs, full or shortened addresses, 4663:address or eip155:4663:address, supported token/address/pool URLs, V3 pool addresses and V4 pool IDs. Pool matches return their recorded currencies. Address prefixes require at least four hexadecimal characters; shortened addresses may use an ellipsis or three dots with at least four characters on each side. Results deduplicate by address and retain source, observedAt, trust and trackedMarket. Missing metadata remains null. When text of at least four characters has no literal match, similar names or tickers may be returned with similar=true. An unknown address or empty result does not prove that no contract exists. Supply each parameter once; unsupported parameters return 400. Responses support ETag and a fifteen-second cache. Pagination reads the current recorded data and may change as indexing advances.
+         */
+        get: operations["searchTokenContracts"];
         put?: never;
         post?: never;
         delete?: never;
@@ -5069,6 +5135,114 @@ export interface components {
             providerConfigured: boolean;
             rpcUrl: string;
         };
+        ContractSearchMatch: {
+            address: string;
+            isin: string | null;
+            name: string | null;
+            /**
+             * Format: date-time
+             * @description When the label's source was observed. Null means no observation yet; serving a cached result does not advance this time.
+             */
+            observedAt: string | null;
+            /**
+             * @description The record that supplied the displayed label. asset_list includes registry assets from issuer, bridge and seed records. explorer_candidate is a reported identity awaiting independent contract checks.
+             * @enum {string}
+             */
+            source: "asset_list" | "contract_metadata" | "lookalike_scan" | "explorer_candidate";
+            symbol: string | null;
+            /** @description Whether this address belongs to the tracked market set. It does not establish current price or activity coverage. */
+            trackedMarket: boolean;
+            /**
+             * @description Independent registry identity verdict. A search match does not grant verification.
+             * @enum {string}
+             */
+            trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+        };
+        ContractSearchPage: {
+            /**
+             * Format: date-time
+             * @description When the search result was computed. Use each item's observedAt for the underlying source age.
+             */
+            checkedAt: string;
+            items: {
+                address: string;
+                isin: string | null;
+                name: string | null;
+                /**
+                 * Format: date-time
+                 * @description When the label's source was observed. Null means no observation yet; serving a cached result does not advance this time.
+                 */
+                observedAt: string | null;
+                /**
+                 * @description The record that supplied the displayed label. asset_list includes registry assets from issuer, bridge and seed records. explorer_candidate is a reported identity awaiting independent contract checks.
+                 * @enum {string}
+                 */
+                source: "asset_list" | "contract_metadata" | "lookalike_scan" | "explorer_candidate";
+                symbol: string | null;
+                /** @description Whether this address belongs to the tracked market set. It does not establish current price or activity coverage. */
+                trackedMarket: boolean;
+                /**
+                 * @description Independent registry identity verdict. A search match does not grant verification.
+                 * @enum {string}
+                 */
+                trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+            }[];
+            /** @enum {string} */
+            mode: "text" | "address" | "fragment" | "pool" | "isin";
+            page: number;
+            /** @enum {integer} */
+            pageSize: 10 | 20 | 50;
+            /** @description Normalized query after extracting supported links, ticker prefixes or chain-qualified addresses. */
+            query: string;
+            /** @description True when no literal text match was found and the response contains similar names or tickers. Inspect the full address before selecting a result. */
+            similar: boolean;
+            /** @description Distinct matching recorded addresses before pagination. An empty page beyond the last result retains this total. */
+            total: number;
+        };
+        ContractSearchResponse: {
+            /** @constant */
+            chainId: 4663;
+            /**
+             * Format: date-time
+             * @description When the search result was computed. Use each item's observedAt for the underlying source age.
+             */
+            checkedAt: string;
+            items: {
+                address: string;
+                isin: string | null;
+                name: string | null;
+                /**
+                 * Format: date-time
+                 * @description When the label's source was observed. Null means no observation yet; serving a cached result does not advance this time.
+                 */
+                observedAt: string | null;
+                /**
+                 * @description The record that supplied the displayed label. asset_list includes registry assets from issuer, bridge and seed records. explorer_candidate is a reported identity awaiting independent contract checks.
+                 * @enum {string}
+                 */
+                source: "asset_list" | "contract_metadata" | "lookalike_scan" | "explorer_candidate";
+                symbol: string | null;
+                /** @description Whether this address belongs to the tracked market set. It does not establish current price or activity coverage. */
+                trackedMarket: boolean;
+                /**
+                 * @description Independent registry identity verdict. A search match does not grant verification.
+                 * @enum {string}
+                 */
+                trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+            }[];
+            /** @enum {string} */
+            mode: "text" | "address" | "fragment" | "pool" | "isin";
+            page: number;
+            /** @enum {integer} */
+            pageSize: 10 | 20 | 50;
+            /** @description Normalized query after extracting supported links, ticker prefixes or chain-qualified addresses. */
+            query: string;
+            scope: string;
+            /** @description True when no literal text match was found and the response contains similar names or tickers. Inspect the full address before selecting a result. */
+            similar: boolean;
+            /** @description Distinct matching recorded addresses before pagination. An empty page beyond the last result retains this total. */
+            total: number;
+        };
         /** @description Metadata read from a project-recorded contract at a pinned block. This check is not a security audit. Source verification is a separate chain explorer observation. */
         DirectoryToken: {
             address: string;
@@ -5853,6 +6027,127 @@ export interface operations {
                         source: string;
                         stale: boolean;
                         total: number;
+                    };
+                };
+            };
+        };
+    };
+    searchTokenContracts: {
+        parameters: {
+            query?: {
+                limit?: 10 | 20 | 50;
+                page?: number;
+                /** @description Search text or a supported URL. At most 2048 input characters and 128 characters after normalization. Omit for an empty result. */
+                q?: string;
+            };
+            header?: never;
+            path: {
+                chainId: 4663;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Matching contract records with source age and identity verdict */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** @constant */
+                        chainId: 4663;
+                        /**
+                         * Format: date-time
+                         * @description When the search result was computed. Use each item's observedAt for the underlying source age.
+                         */
+                        checkedAt: string;
+                        items: {
+                            address: string;
+                            isin: string | null;
+                            name: string | null;
+                            /**
+                             * Format: date-time
+                             * @description When the label's source was observed. Null means no observation yet; serving a cached result does not advance this time.
+                             */
+                            observedAt: string | null;
+                            /**
+                             * @description The record that supplied the displayed label. asset_list includes registry assets from issuer, bridge and seed records. explorer_candidate is a reported identity awaiting independent contract checks.
+                             * @enum {string}
+                             */
+                            source: "asset_list" | "contract_metadata" | "lookalike_scan" | "explorer_candidate";
+                            symbol: string | null;
+                            /** @description Whether this address belongs to the tracked market set. It does not establish current price or activity coverage. */
+                            trackedMarket: boolean;
+                            /**
+                             * @description Independent registry identity verdict. A search match does not grant verification.
+                             * @enum {string}
+                             */
+                            trust: "verified" | "listed" | "lookalike" | "community" | "unknown";
+                        }[];
+                        /** @enum {string} */
+                        mode: "text" | "address" | "fragment" | "pool" | "isin";
+                        page: number;
+                        /** @enum {integer} */
+                        pageSize: 10 | 20 | 50;
+                        /** @description Normalized query after extracting supported links, ticker prefixes or chain-qualified addresses. */
+                        query: string;
+                        scope: string;
+                        /** @description True when no literal text match was found and the response contains similar names or tickers. Inspect the full address before selecting a result. */
+                        similar: boolean;
+                        /** @description Distinct matching recorded addresses before pagination. An empty page beyond the last result retains this total. */
+                        total: number;
+                    };
+                };
+            };
+            /** @description Search result unchanged. Reuse the body from the previous successful response. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid query or pagination */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Unsupported chain */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Contract search unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
                     };
                 };
             };

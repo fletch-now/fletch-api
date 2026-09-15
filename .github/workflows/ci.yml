@@ -25,11 +25,8 @@ jobs:
       - run: npm run typecheck
       - name: Offline tests
         run: npm run test:offline
-      - name: Built package carries its generated types
-        run: |
-          npm run build --workspace fletch-sdk
-          test -f packages/fletch-sdk/dist/generated/openapi.d.ts
-          npm pack --dry-run --workspace fletch-sdk 2>&1 | grep -q "dist/generated/openapi.d.ts"
+      - name: Install and check the built package
+        run: npm run test:package
 
   # Reads https://fletch.now/api/v1 four times. Its own job, and allowed to fail,
   # so a deploy window or a rate limit cannot block a pull request.

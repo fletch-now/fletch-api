@@ -2,7 +2,7 @@
 
 A TypeScript client for the Fletch v1 API: the Robinhood Chain Stock Token registry,
 its changelog and the status verdict. Response types are generated from the OpenAPI
-snapshot in `../../spec/openapi.json` with openapi-typescript; the client itself is a
+snapshot in [spec/openapi.json](https://github.com/fletch-now/fletch-api/blob/main/spec/openapi.json) with openapi-typescript; the client itself is a
 thin fetch wrapper that builds URLs, sends a key when you have one, and keeps an ETag
 cache so a poll that sees a 304 costs no bytes.
 
@@ -14,13 +14,23 @@ and optional token metadata with its network, address and check time. Each read
 revalidates with the server, so a withdrawn listing returns 404 even after an
 earlier response was cached. Manage listings in the Fletch dashboard.
 
-The package is not on npm yet. Until it is, build it from this repository and import
-the result:
+The package is not on npm yet. From a checkout of
+[fletch-api](https://github.com/fletch-now/fletch-api), build its tarball:
 
 ```bash
-npm ci && npm run build --workspace fletch-sdk
-# packages/fletch-sdk/dist/index.js, with its .d.ts beside it
+npm ci --ignore-scripts
+npm pack --workspace fletch-sdk
 ```
+
+Install the tarball in your application before using the import below:
+
+```bash
+npm install /absolute/path/to/fletch-api/fletch-sdk-0.3.2.tgz
+```
+
+The tarball includes compiled JavaScript, TypeScript declarations and the license.
+[Release checks and npm publishing](https://github.com/fletch-now/fletch-api/blob/main/docs/RELEASING.md)
+are documented in the repository.
 
 ```ts
 import { FletchClient } from "fletch-sdk";
@@ -125,7 +135,7 @@ for (const token of page.items) {
 Inspect source time, fetch time, block/hash, computation method and coverage.
 Market cap expires with its earliest required supply, burn, decimals or price
 input. An expired value stays unavailable; a zero stays zero. See the repository's
-[metric freshness contract](../../docs/FRESHNESS.md).
+[metric freshness contract](https://github.com/fletch-now/fletch-api/blob/main/docs/FRESHNESS.md).
 
 ## App catalog
 
@@ -139,13 +149,13 @@ console.log(markets.items?.[0]?.robinhoodApp?.status, markets.catalogMatches);
 Use `catalog.nextOffset` for the next page. Each pair retains per-account trading
 availability. Catalog status is separate from on-chain trust. The SDK exports
 `AppCatalogPage`, `AppCatalogStatus` and `StockPairing` from the live schema snapshot.
-Read [the catalog guide](../../docs/APP-CATALOG.md) for SSE and watcher delivery.
+Read [the catalog guide](https://github.com/fletch-now/fletch-api/blob/main/docs/APP-CATALOG.md) for SSE and watcher delivery.
 
 ### Stock and community pools
 
 `client.stockPairings(4663, { address, limit: 50, offset: 0 })` returns a typed
 `StockPairingPage`. Follow `nextOffset` until null; token responses include only
-three grouped examples. See [pagination and source semantics](../../docs/STOCK-PAIRINGS.md).
+three grouped examples. See [pagination and source semantics](https://github.com/fletch-now/fletch-api/blob/main/docs/STOCK-PAIRINGS.md).
 `robinhoodApp.scope` is `crypto_currency_pairs`: `not_covered` applies to Stock
 Tokens, while legacy `not_in_app` means absent from this crypto source only.
 Inspect `stockToken` for separate list membership and its own verification time.

@@ -84,7 +84,40 @@ snapshot or perform registry lookups for unrelated prompts. Registry monitoring
 continues independently of builder usage. Market listings default to measured
 selected-pool 24h volume. Stale or missing volume remains null and sorts last,
 with stable identity ordering. Traction is a separate pool sort. Volume does not establish a token's trust.
-Registry asset reads accept ?trust=verified or ?trust=listed. Their collection remains Robinhood listings; community addresses resolve through /tokens/{address}. /chains/4663/markets returns priority tokens; /chains/4663/dex/pools drills into pools.
+Registry asset reads accept ?trust=verified or ?trust=listed. Their collection remains Robinhood listings; community addresses resolve through /tokens/{address}. /chains/4663/search finds recorded contracts across the registry. /chains/4663/markets compares tracked tokens and requested contract readings; /chains/4663/dex/pools drills into pools.
+
+## Find a token contract
+
+curl -fsSG 'https://fletch.now/api/v1/chains/4663/search' --data-urlencode 'q=$NVDA' --data-urlencode 'limit=10'
+curl -fsSG 'https://fletch.now/api/v1/chains/4663/search' --data-urlencode 'q=NVIDIA token'
+curl -fsS 'https://fletch.now/api/v1/chains/4663/markets?q=FRONG&searchPage=1'
+
+Search accepts tickers with an optional $, words in a name in any order, recorded
+on-chain aliases, ISINs, full or shortened addresses, chain-qualified addresses,
+token/address/pool URLs and pool identifiers. Examples include
+eip155:4663:0x..., 0x1234...abcd, a V3 pool address or a V4 pool ID. Shortened
+addresses need at least four hexadecimal characters on each side. URL-encode
+query text, including literal percent signs, underscores and backslashes.
+
+GET /chains/4663/search reads active registry asset records, visible contract
+metadata, lookalike observations and explorer candidates. It returns one result
+per address, including records outside tracked markets. Check source, observedAt,
+trust and trackedMarket. An explorer candidate's reported label still needs
+contract verification. trackedMarket describes membership, not current coverage.
+Missing metadata stays null. An empty result does not prove no contract exists.
+
+The query allows 2048 input characters and 128 after normalization. page is
+1 through 99999; limit is 10, 20 or 50, default 10. Supply each parameter once.
+When literal text has no match, a query of at least four characters may return
+similar names or tickers with similar=true. Show that distinction to users.
+Responses support ETag and a fifteen-second cache. checkedAt dates the search;
+observedAt dates each source. Pages can change as new records arrive.
+
+With q, Markets adds contractSearch with its own total and ten-result pages.
+searchPage selects that page; page/pageSize still paginate market items.
+Market filters apply to the market table. contractSearchError means search is
+unavailable while recorded market readings may still return. Use a selected full
+address to request its market readings. Unread prices and activity remain null.
 
 ## Public app directory
 
@@ -207,10 +240,14 @@ Daily state history is a dated reading, not OHLC, and begins when indexing began
 - /chains/4663/assets: published assets; symbols and fields narrow bulk reads.
 - /chains/4663/assets/{symbol}: one listed asset and its state.
 - /tokens/{address}: canonical trust and the same source/age/reason observations as its token page.
-- /chains/4663/markets?page=1&pageSize=25&sort=volume: one row per priority token.
+- /chains/4663/search?q=NVDA&limit=10: recorded contract matches with source age,
+  trust and independent pagination, including contracts outside tracked markets.
+- /chains/4663/markets?page=1&pageSize=25&sort=volume: one row per tracked token.
+  A full address requests another recorded contract's market readings. With q,
+  contractSearch adds broader results and uses searchPage for its own pages.
   Volume covers its selected pool. Combine kind, trust, activity, data, depth,
   identity and minVolumeUsd; numeric filters require usable current readings.
-  sort supports volume, swaps, market_cap, v3_depth, v4_depth and name.
+  sort supports price, volume, swaps, market_cap, pools, v3_depth, v4_depth and name.
 - /chains/4663/markets/filters: discover exact filter values, definitions and
   useful query presets. The human Markets page uses this same catalog.
 - /chains/4663/dex/pools: search listed/community pools by name or address.
