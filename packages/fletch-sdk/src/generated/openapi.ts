@@ -43,7 +43,7 @@ export interface paths {
                                 listedAt: string;
                                 /** Format: uri */
                                 liveUrl: string;
-                                /** @description Stable app slug. Its page is /published/{slug}. */
+                                /** @description Current canonical directory slug, separate from the hosted app's hostname. Older slug reads return this current record only while it remains public. Its page is /published/{slug}. */
                                 slug: string;
                                 summary: string;
                                 title: string;
@@ -130,7 +130,7 @@ export interface paths {
                                 listedAt: string;
                                 /** Format: uri */
                                 liveUrl: string;
-                                /** @description Stable app slug. Its page is /published/{slug}. */
+                                /** @description Current canonical directory slug, separate from the hosted app's hostname. Older slug reads return this current record only while it remains public. Its page is /published/{slug}. */
                                 slug: string;
                                 summary: string;
                                 title: string;
@@ -5361,7 +5361,7 @@ export interface components {
             listedAt: string;
             /** Format: uri */
             liveUrl: string;
-            /** @description Stable app slug. Its page is /published/{slug}. */
+            /** @description Current canonical directory slug, separate from the hosted app's hostname. Older slug reads return this current record only while it remains public. Its page is /published/{slug}. */
             slug: string;
             summary: string;
             title: string;

@@ -11,6 +11,15 @@ The public app directory adds `GET /apps` and `GET /apps/{slug}`, with typed SDK
 helpers `publishedApps()` and `publishedApp()`. Listings include creator-provided
 descriptions and optional token metadata checks. Public results follow owner
 consent, admin review and the currently published app version.
+Use the returned `app.slug` for links to `/published/{slug}`. Owners can change
+that listing address without changing the hosted app URL. Old directory links
+redirect after approval, and API reads using an old slug return the current
+record only while the listing remains public.
+
+Link a token's human-readable market page at
+`https://fletch.now/registry/markets/{address}`. JSON remains at
+`GET /tokens/{address}`. [The agent guide](https://fletch.now/skill.md)
+explains network selection, freshness checks and bounded requests.
 
 The TypeScript client lives in `packages/fletch-sdk`. npm publication is pending.
 Build an installable package from this checkout:
