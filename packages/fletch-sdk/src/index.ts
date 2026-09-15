@@ -308,6 +308,10 @@ export class FletchClient {
     return (await this.get("/chains/{chainId}/markets", requestOptions({ chainId }, query))).body;
   }
 
+  async tokenDiscoveries(chainId: number = MAINNET_CHAIN_ID, query?: Query<"/chains/{chainId}/discoveries">): Promise<Body<"/chains/{chainId}/discoveries">> {
+    return (await this.get("/chains/{chainId}/discoveries", requestOptions({ chainId }, query))).body;
+  }
+
   async searchContracts(chainId: number = MAINNET_CHAIN_ID, query?: ContractSearchQuery): Promise<ContractSearchResponse> {
     return (await this.get("/chains/{chainId}/search", requestOptions({ chainId }, query))).body;
   }

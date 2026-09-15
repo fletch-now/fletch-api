@@ -107,6 +107,13 @@ Caller cancellation keeps the `AbortError` name without exposing a custom reason
 ## Token markets
 
 `client.marketFilters()` reads the public catalog shared with the Markets page.
+`client.tokenDiscoveries(4663, { limit: 20 })` reads the latest addresses recorded by
+Fletch, including community tokens. The maximum is 50. `firstSeenAt` records
+Fletch's observation, while `metadataCheckedAt` records the contract metadata
+check and `asOf` records this snapshot. These dates do not establish a new
+deployment, a Robinhood app listing or trading activity. Each address keeps its
+independent trust verdict; discovery coverage remains incomplete.
+
 `client.tokenMarkets(4663, { kind: "community", activity: "traded", sort: "volume", page: 1, pageSize: 25 })`
 returns one token page. Query types come from OpenAPI; filters combine with AND.
 Preserve each metric's source, observation time and unavailable reason. Numeric

@@ -52,6 +52,16 @@ test("published app reads revalidate and never reuse a withdrawn listing", async
   assert.equal(fake.calls[2]!.headers["if-none-match"], 'W/"listing-v1"');
 });
 
+test("discoveries retain first observation, metadata time and independent trust", async () => {
+  const body = { chainId: 4663, asOf: "2026-09-15T08:49:00Z", items: [{ address: "0x" + "a".repeat(40), firstSeenAt: "2026-09-15T08:48:31Z", metadataCheckedAt: "2026-09-15T08:48:45Z", trust: "community" }], scope: "Fletch observations, not deployments" };
+  const fake = fakeFetch(() => jsonResponse(body));
+  const client = new FletchClient({ fetch: fake.fetch });
+  assert.deepEqual(await client.tokenDiscoveries(4663, { limit: 6 }), body);
+  const url = new URL(fake.calls[0]!.url);
+  assert.equal(url.pathname, "/api/v1/chains/4663/discoveries");
+  assert.equal(url.searchParams.get("limit"), "6");
+});
+
 test("contract search keeps identifiers and independent result pagination intact", async function contractSearch() {
   const body = { chainId: 4663, query: "$AAOI & token", exact: { items: [] }, suggestions: [], coverage: { complete: false } };
   const fake = fakeFetch(function answer() { return jsonResponse(body); });

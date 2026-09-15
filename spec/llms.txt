@@ -243,6 +243,11 @@ Daily state history is a dated reading, not OHLC, and begins when indexing began
 - /chains/4663/assets: published assets; symbols and fields narrow bulk reads.
 - /chains/4663/assets/{symbol}: one listed asset and its state.
 - /tokens/{address}: canonical trust and the same source/age/reason observations as its token page.
+- /chains/4663/discoveries?limit=20: latest recorded token addresses, including community contracts.
+  firstSeenAt is Fletch's first observation, not a deployment or Robinhood app listing.
+  metadataCheckedAt dates the identity read; asOf dates the response snapshot.
+  Hidden tokens are excluded; discovery coverage is incomplete. Limit is 1 to 50.
+  The Registry sidebar and /registry/feed.xml use the same data, cached for 15 seconds.
 - /chains/4663/search?q=NVDA&limit=10: recorded contract matches with source age,
   trust and independent pagination, including contracts outside tracked markets.
 - /chains/4663/markets?page=1&pageSize=25&sort=volume: one row per tracked token.

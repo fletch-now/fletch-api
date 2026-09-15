@@ -1693,6 +1693,26 @@ export interface paths {
         patch?: never;
         trace?: never;
     };
+    "/chains/{chainId}/discoveries": {
+        parameters: {
+            query?: never;
+            header?: never;
+            path?: never;
+            cookie?: never;
+        };
+        /**
+         * Latest token addresses recorded by Fletch
+         * @description Public. Includes community contracts with successfully read metadata and bytecode, plus active Stock Token and bridged-asset records. Hidden contracts are excluded. Deduplicated by address, ordered by firstSeenAt descending with address ties. Listed addresses retain the earliest known observation. First recorded is not a contract deployment date, Robinhood app listing or evidence of trading. Coverage is incomplete and historical indexing can discover old contracts. asOf is the read snapshot time; firstSeenAt and metadataCheckedAt keep their source times. The Registry sidebar and /registry/feed.xml use the same read model. Supports ETag and a fifteen-second cache. Polling returns a bounded latest window, not a complete event archive.
+         */
+        get: operations["getTokenDiscoveries"];
+        put?: never;
+        post?: never;
+        delete?: never;
+        options?: never;
+        head?: never;
+        patch?: never;
+        trace?: never;
+    };
     "/chains/{chainId}/events": {
         parameters: {
             query?: never;
@@ -6027,6 +6047,104 @@ export interface operations {
                         source: string;
                         stale: boolean;
                         total: number;
+                    };
+                };
+            };
+        };
+    };
+    getTokenDiscoveries: {
+        parameters: {
+            query?: {
+                limit?: number;
+            };
+            header?: never;
+            path: {
+                chainId: 4663;
+            };
+            cookie?: never;
+        };
+        requestBody?: never;
+        responses: {
+            /** @description Recent address discoveries with identity and observation times */
+            200: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        /** Format: date-time */
+                        asOf: string;
+                        chainId: number;
+                        items: {
+                            address: string;
+                            /** Format: date-time */
+                            firstSeenAt: string;
+                            /** Format: date-time */
+                            metadataCheckedAt: string | null;
+                            name: string | null;
+                            /** @enum {string} */
+                            source: "contract_metadata" | "asset_list";
+                            symbol: string;
+                            /** @description Derived from the row: whether bytecode was found and the contract agrees with the listing. */
+                            trust: {
+                                detail?: string;
+                                label?: string;
+                                /** @enum {string} */
+                                level?: "verified" | "listed" | "lookalike" | "community" | "unknown";
+                            };
+                        }[];
+                        scope: string;
+                    };
+                };
+            };
+            /** @description Discovery window unchanged. Reuse the previous response. */
+            304: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content?: never;
+            };
+            /** @description Invalid query */
+            400: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Unsupported chain */
+            404: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Too many anonymous requests from this address; Retry-After says when the window ends */
+            429: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
+                    };
+                };
+            };
+            /** @description Token discoveries unavailable */
+            503: {
+                headers: {
+                    [name: string]: unknown;
+                };
+                content: {
+                    "application/json": {
+                        error: string;
                     };
                 };
             };

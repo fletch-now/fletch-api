@@ -2,6 +2,8 @@
 
 ## 0.3.2 - 2026-09-14 (prepared)
 
+15 September: refresh the deployed OpenAPI and agent reference. Add typed `tokenDiscoveries` reads for recent recorded addresses, retaining observation times and independent trust. npm publication remains pending.
+
 Include the SDK license in its npm tarball. Check a fresh installation, runtime imports and shipped declarations in CI. Add a manual publication workflow and working tarball installation instructions. npm publication remains pending.
 
 Add ascending and descending price, volume, market-cap and pool-count sorting across complete filtered Markets results. Expose asset filters and optional pagination through SDK/MCP reads. Shared raw observations retain their source times; expiry and filtering are recomputed on every request. npm publication remains pending.
